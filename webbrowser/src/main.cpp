@@ -51,6 +51,13 @@ int main(int argc, char* argv[])
 
     CefSettings settings;
     settings.windowless_rendering_enabled = true;
+#if defined(OS_MAC) || defined(__APPLE__)
+    // Helper processes require a properly staged .app bundle when the sandbox
+    // is enabled.  The development build currently runs out of the build tree
+    // without the full helper bundle layout, so disable the CEF sandbox on
+    // macOS to allow the renderer and GPU subprocesses to launch.
+    settings.no_sandbox = true;
+#endif
 
     namespace fs = std::filesystem;
     std::error_code ec;
