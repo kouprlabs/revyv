@@ -10,24 +10,14 @@ if(APPLE)
     )
 endif()
 
-find_package(ZeroMQ CONFIG QUIET)
-if(NOT ZeroMQ_FOUND)
-    find_package(ZeroMQ REQUIRED)
-endif()
+find_package(ZeroMQ REQUIRED)
 
-set(_ZEROMQ_TARGET "")
-set(_ZEROMQ_NEEDS_INCLUDES OFF)
 if(TARGET ZeroMQ::libzmq)
     set(_ZEROMQ_TARGET ZeroMQ::libzmq)
 elseif(TARGET ZeroMQ::ZeroMQ)
     set(_ZEROMQ_TARGET ZeroMQ::ZeroMQ)
-elseif(ZeroMQ_FOUND)
-    set(_ZEROMQ_TARGET ${ZeroMQ_LIBRARIES})
-    set(_ZEROMQ_NEEDS_INCLUDES ON)
-endif()
-
-if(NOT _ZEROMQ_TARGET)
-    message(FATAL_ERROR "ZeroMQ not found. Install ZeroMQ or provide ZeroMQ_DIR.")
+else()
+    message(FATAL_ERROR "ZeroMQ package did not define an imported target.")
 endif()
 
 find_package(cppzmq CONFIG REQUIRED)
@@ -106,10 +96,6 @@ target_include_directories(compositor
 
 if(_SDL2_NEEDS_INCLUDES)
     target_include_directories(compositor PRIVATE ${SDL2_INCLUDE_DIRS})
-endif()
-
-if(_ZEROMQ_NEEDS_INCLUDES)
-    target_include_directories(compositor PRIVATE ${ZeroMQ_INCLUDE_DIRS})
 endif()
 
 if(_LZO_NEEDS_INCLUDES AND _LZO_INCLUDE_PATH)
