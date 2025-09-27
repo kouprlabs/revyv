@@ -1,8 +1,11 @@
 #include "connector.h"
 #include <memory>
+#include <cstring>
 #include <revyv/revyv.h>
 
 using namespace revyv;
+
+extern "C" {
 
 void* revyv_context_create()
 {
@@ -108,3 +111,5 @@ RevyvEvent revyv_event_wait(void* ctx)
 
     return result;
 }
+
+} // extern "C"
