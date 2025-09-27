@@ -111,7 +111,7 @@ int main(int argc, char* argv[])
     CefRefPtr<BrowserClient> browserClient = new BrowserClient(new RenderHandler(revyv, x, y, width, height));
     CefRefPtr<CefBrowser> browser = CefBrowserHost::CreateBrowserSync(window_info, browserClient.get(), url, browser_settings, nullptr, nullptr);
 
-    std::thread thread(EventThread::event_thread, browser.get(), revyv);
+    std::thread thread(EventThread::event_thread, browser, revyv);
 
     CefRunMessageLoop();
     CefShutdown();
