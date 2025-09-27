@@ -530,6 +530,12 @@ if (_CEF_INCLUDE_HINTS)
     target_include_directories(webbrowser PRIVATE ${_CEF_INCLUDE_HINTS})
 endif ()
 
+if (CEF_ROOT)
+    target_include_directories(webbrowser PRIVATE
+            "${CEF_ROOT}"
+            "${CEF_ROOT}/include")
+endif ()
+
 # Stage the shared librevyv runtime next to the executable so the
 # @loader_path rpath added above can resolve the dependency without
 # requiring users to tweak DYLD_LIBRARY_PATH manually.
