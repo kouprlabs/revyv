@@ -136,13 +136,12 @@ endif ()
 add_subdirectory(${CEF_LIBCEF_DLL_WRAPPER_PATH} libcef_dll_wrapper)
 
 if (APPLE)
-    # The bundled CEF SDK is built with a macOS 12.0 deployment target.  When
-    # newer versions of Xcode inject a higher `-target` flag (e.g. macOS 26)
-    # during our build the compiler treats CEF's own `-mmacosx-version-min=12.0`
-    # argument as an override and fails due to `-Werror,-Woverriding-option`.
-    # Force the wrapper target to share CEF's deployment target so the flags
-    # agree and the build proceeds.
-    set_target_properties(libcef_dll_wrapper PROPERTIES MACOSX_DEPLOYMENT_TARGET "12.0")
+    # Xcode 16+ passes a `-target arm64-apple-macosXX.Y` flag that overrides the
+    # `-mmacosx-version-min=12.0` argument baked into the CEF SDK sources.  That
+    # mismatch triggers `-Werror,-Woverriding-option` during compilation of the
+    # wrapper target.  Suppress the single diagnostic so the build can proceed
+    # while still honouring the rest of CEF's warning settings.
+    target_compile_options(libcef_dll_wrapper PRIVATE "-Wno-error=overriding-option")
 endif ()
 
 # Allow includes relative to the current source directory
