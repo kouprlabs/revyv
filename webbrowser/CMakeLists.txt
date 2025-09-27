@@ -92,21 +92,40 @@ else ()
     set(GS_OUTPATH "linux64/clang-format")
 endif ()
 
-message(STATUS "Downloading clang-format from Google Storage...")
-execute_process(
-        COMMAND "${PYTHON_EXECUTABLE}"
-        "tools/buildtools/download_from_google_storage.py"
-        "--no_resume"
-        "--platform=${GS_PLATFORM}"
-        "--no_auth"
-        "--bucket" "chromium-clang-format"
-        "-s" "tools/buildtools/${GS_HASHPATH}"
-        "-o" "tools/buildtools/${GS_OUTPATH}"
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-        RESULT_VARIABLE EXECUTE_RV
-)
-if (NOT EXECUTE_RV STREQUAL "0")
-    message(FATAL_ERROR "Execution failed with unexpected result: ${EXECUTE_RV}")
+set(GS_OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/tools/buildtools/${GS_OUTPATH}")
+
+if (EXISTS "${GS_OUTPUT}")
+    message(STATUS "Using cached clang-format at ${GS_OUTPUT}")
+else ()
+    message(STATUS "Downloading clang-format from Google Storage...")
+    execute_process(
+            COMMAND "${PYTHON_EXECUTABLE}"
+            "tools/buildtools/download_from_google_storage.py"
+            "--no_resume"
+            "--platform=${GS_PLATFORM}"
+            "--no_auth"
+            "--bucket" "chromium-clang-format"
+            "-s" "tools/buildtools/${GS_HASHPATH}"
+            "-o" "tools/buildtools/${GS_OUTPATH}"
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+            RESULT_VARIABLE EXECUTE_RV
+    )
+    if (EXECUTE_RV STREQUAL "0" AND EXISTS "${GS_OUTPUT}")
+        message(STATUS "clang-format download complete")
+    else ()
+        find_program(SYSTEM_CLANG_FORMAT_EXECUTABLE NAMES clang-format)
+        if (SYSTEM_CLANG_FORMAT_EXECUTABLE)
+            message(WARNING
+                    "Failed to download bundled clang-format (exit code ${EXECUTE_RV}). "
+                    "Falling back to system clang-format at ${SYSTEM_CLANG_FORMAT_EXECUTABLE}. "
+                    "Install the Python 'six' module to enable automatic downloads.")
+        else ()
+            message(WARNING
+                    "Failed to download bundled clang-format (exit code ${EXECUTE_RV}). "
+                    "No system clang-format executable was found. Please install the "
+                    "Python 'six' module or provide clang-format manually if formatting is required.")
+        endif ()
+    endif ()
 endif ()
 
 #
