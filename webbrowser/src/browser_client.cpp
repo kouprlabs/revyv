@@ -24,3 +24,17 @@ void BrowserClient::OnBeforeClose(CefRefPtr<CefBrowser> browser)
     }
     CefLifeSpanHandler::OnBeforeClose(browser);
 }
+
+bool BrowserClient::OnCertificateError(CefRefPtr<CefBrowser> browser,
+    cef_errorcode_t cert_error,
+    const CefString& request_url,
+    CefRefPtr<CefSSLInfo> ssl_info,
+    CefRefPtr<CefCallback> callback)
+{
+    if (callback.get()) {
+        callback->Continue(true);
+        return true;
+    }
+
+    return false;
+}

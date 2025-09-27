@@ -98,6 +98,13 @@ int main(int argc, char* argv[])
 
     CefString(&settings.resources_dir_path) = resources_dir.string();
     CefString(&settings.locales_dir_path) = locales_dir.string();
+
+    fs::path cache_root = exe_path.parent_path() / "cef_cache";
+    fs::create_directories(cache_root, ec);
+    if (ec) {
+        ec.clear();
+    }
+    CefString(&settings.root_cache_path) = cache_root.string();
     if (!CefInitialize(args, settings, nullptr, nullptr)) {
         return -1;
     }
