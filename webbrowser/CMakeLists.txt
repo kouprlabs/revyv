@@ -159,6 +159,24 @@ add_executable(webbrowser ${SOURCES})
 
 SET_EXAMPLE_EXECUTABLE_TARGET_PROPERTIES(webbrowser)
 
+# Logical target used to link the libcef library. On macOS CEF ships as a
+# framework whose binary lives inside the "Chromium Embedded Framework"
+# bundle. The FindCEF module does not currently populate the CEF_LIB_* paths
+# with that framework binary, so do it here if necessary to avoid link errors.
+if (APPLE)
+    set(_cef_framework "${CEF_BINARY_DIR}/Chromium Embedded Framework.framework/Chromium Embedded Framework")
+    if (NOT CEF_LIB_DEBUG AND EXISTS "${CEF_BINARY_DIR}/Debug")
+        set(CEF_LIB_DEBUG "${CEF_BINARY_DIR}/Debug/Chromium Embedded Framework.framework/Chromium Embedded Framework")
+    elseif (NOT CEF_LIB_DEBUG)
+        set(CEF_LIB_DEBUG "${_cef_framework}")
+    endif ()
+    if (NOT CEF_LIB_RELEASE AND EXISTS "${CEF_BINARY_DIR}/Release")
+        set(CEF_LIB_RELEASE "${CEF_BINARY_DIR}/Release/Chromium Embedded Framework.framework/Chromium Embedded Framework")
+    elseif (NOT CEF_LIB_RELEASE)
+        set(CEF_LIB_RELEASE "${_cef_framework}")
+    endif ()
+endif ()
+
 # Logical target used to link the libcef library
 ADD_LOGICAL_TARGET("libcef_lib" "${CEF_LIB_DEBUG}" "${CEF_LIB_RELEASE}")
 
