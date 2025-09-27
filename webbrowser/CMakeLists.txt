@@ -383,6 +383,17 @@ if (APPLE)
         set(_cef_debug_resources "${_cef_release_resources}")
     endif ()
 
+    set(_cef_release_libraries_bundle "")
+    set(_cef_debug_libraries_bundle "")
+    if (EXISTS "${_cef_release_bundle}/Libraries")
+        set(_cef_release_libraries_bundle "${_cef_release_bundle}")
+        if (EXISTS "${_cef_debug_bundle}/Libraries")
+            set(_cef_debug_libraries_bundle "${_cef_debug_bundle}")
+        else ()
+            set(_cef_debug_libraries_bundle "${_cef_release_bundle}")
+        endif ()
+    endif ()
+
     # Locate the helper app bundles shipped with CEF so they can be staged next
     # to the executable and renamed to match our target name.  Recent CEF
     # releases (starting with 140) no longer ship prebuilt helpers in the
@@ -499,6 +510,14 @@ if (APPLE)
             COMMAND ${CMAKE_COMMAND} -E copy_directory
                     "$<IF:$<CONFIG:Debug>,${_cef_debug_resources},${_cef_release_resources}>"
                     "$<TARGET_FILE_DIR:webbrowser>/Resources")
+
+    if (_cef_release_libraries_bundle)
+        set(_cef_library_source "$<IF:$<CONFIG:Debug>,${_cef_debug_libraries_bundle},${_cef_release_libraries_bundle}>/Libraries")
+        add_custom_command(TARGET webbrowser POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_directory
+                        "${_cef_library_source}"
+                        "$<TARGET_FILE_DIR:webbrowser>")
+    endif ()
 
     if (_cef_has_helpers)
         foreach(_dest_name IN LISTS _cef_helper_destinations)
