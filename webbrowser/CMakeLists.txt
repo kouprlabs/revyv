@@ -74,7 +74,10 @@ message(STATUS "Using Python: ${PYTHON_EXECUTABLE}")
 #
 
 if (APPLE)
-    set(GS_PLATFORM "mac")
+    # download_from_google_storage.py compares the supplied --platform regex
+    # against sys.platform which is "darwin" on macOS. Accept that spelling so
+    # the tool actually downloads the formatter instead of skipping it.
+    set(GS_PLATFORM "darwin")
     if ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "arm64")
         set(GS_HASHPATH "mac/clang-format.arm64.sha1")
         set(GS_OUTPATH "mac/clang-format.arm64")
@@ -83,7 +86,8 @@ if (APPLE)
         set(GS_OUTPATH "mac/clang-format.x64")
     endif ()
 else ()
-    set(GS_PLATFORM "linux*")
+    # Match both "linux" and legacy "linux2" style sys.platform values.
+    set(GS_PLATFORM "linux.*")
     set(GS_HASHPATH "linux64/clang-format.sha1")
     set(GS_OUTPATH "linux64/clang-format")
 endif ()
