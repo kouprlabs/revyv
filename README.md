@@ -48,6 +48,24 @@ Install dependencies:
 sudo zypper install SDL2-devel cairo-devel zeromq-devel cppzmq-devel lzo-devel
 ```
 
+#### macOS
+
+Install the build tools and dependencies with [Homebrew](https://brew.sh/):
+
+```shell
+brew update
+brew install cmake sdl2 cairo zeromq cppzmq lzo
+```
+
+Generate the project files and build the targets (replace `Release` with `Debug` if desired):
+
+```shell
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --parallel
+```
+
+The resulting binaries are placed in the `build` directory, e.g. `build/compositor` and `build/webbrowser`.
+
 ## Run
 
 Run `compositor`:
@@ -60,6 +78,12 @@ Add `librevyv` to `LD_LIBRARY_PATH`:
 
 ```shell
 export LD_LIBRARY_PATH=/path/to/cmake/build/librevyv
+```
+
+On macOS, set the dynamic library path with `DYLD_LIBRARY_PATH` instead:
+
+```shell
+export DYLD_LIBRARY_PATH=/path/to/cmake/build/librevyv
 ```
 
 Any client app can now be started, in this case we run `webbrowser`:
