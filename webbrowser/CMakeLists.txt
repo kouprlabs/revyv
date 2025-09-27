@@ -191,6 +191,14 @@ add_executable(webbrowser ${SOURCES})
 
 SET_EXAMPLE_EXECUTABLE_TARGET_PROPERTIES(webbrowser)
 
+if (APPLE)
+    # Xcode injects a deployment target via -target which collides with the
+    # fixed -mmacosx-version-min flag bundled in the CEF SDK. Demote the
+    # resulting overriding-option diagnostic back to a warning so the build
+    # continues without relaxing the rest of the warning budget.
+    target_compile_options(webbrowser PRIVATE "-Wno-error=overriding-option")
+endif ()
+
 # Logical target used to link the libcef library. On macOS CEF ships as a
 # framework whose binary lives inside the "Chromium Embedded Framework"
 # bundle. The FindCEF module does not currently populate the CEF_LIB_* paths
