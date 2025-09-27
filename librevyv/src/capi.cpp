@@ -19,20 +19,20 @@ void revyv_context_destroy(void* ctx)
     delete connector;
 }
 
-uint32_t revyv_window_create(void* ctx, unsigned char* data, uint64_t data_size, double x, double y, double width, double height, uint8_t raster_type)
+uint32_t revyv_window_create(void* ctx, unsigned char* data, size_t data_size, double x, double y, double width, double height, uint8_t raster_type)
 {
     auto* connector = (Connector*)ctx;
     return connector->window_create(data, data_size, x, y, width, height,
         (WindowRasterType)raster_type);
 }
 
-void revyv_window_update(void* ctx, uint32_t window_id, unsigned char* data, uint64_t data_size, double x, double y, double width, double height)
+void revyv_window_update(void* ctx, uint32_t window_id, unsigned char* data, size_t data_size, double x, double y, double width, double height)
 {
     auto* connector = (Connector*)ctx;
     connector->window_update_pixels(window_id, data, data_size, x, y, width, height);
 }
 
-void revyv_window_resize(void* ctx, uint32_t window_id, unsigned char* data, uint64_t data_size, double width, double height)
+void revyv_window_resize(void* ctx, uint32_t window_id, unsigned char* data, size_t data_size, double width, double height)
 {
     auto* connector = (Connector*)ctx;
     connector->window_resize(window_id, data, data_size, width, height);
