@@ -64,6 +64,14 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --parallel
 ```
 
+To generate an Xcode project instead of Unix Makefiles:
+
+```shell
+cmake -S . -B build-xcode -G Xcode
+```
+
+Open the generated `build-xcode/revyv.xcodeproj` in Xcode and select the desired scheme to build and run the targets.
+
 The resulting binaries are placed in the `build` directory, e.g. `build/compositor` and `build/webbrowser`.
 
 ## Run
