@@ -59,7 +59,6 @@ int main(int argc, char* argv[])
     CefBrowserSettings browser_settings;
     browser_settings.webgl = STATE_ENABLED;
     browser_settings.local_storage = STATE_ENABLED;
-    browser_settings.databases = STATE_ENABLED;
     CefRefPtr<BrowserClient> browserClient = new BrowserClient(new RenderHandler(revyv, x, y, width, height));
     CefRefPtr<CefBrowser> browser = CefBrowserHost::CreateBrowserSync(window_info, browserClient.get(), url, browser_settings, nullptr, nullptr);
 
