@@ -4,6 +4,7 @@
 #include "include/cef_browser.h"
 #include "include/cef_render_handler.h"
 #include "include/cef_task.h"
+#include "include/base/cef_ref_counted.h"
 #include "include/wrapper/cef_closure_task.h"
 #include <functional>
 #include <string>
@@ -18,14 +19,34 @@ void EventThread::event_thread(CefRefPtr<CefBrowser> browser, void* aslCtx)
     RevyvEvent event;
     bool mouse_down = false;
 
+    class BrowserHostTask : public CefTask {
+    public:
+        BrowserHostTask(CefRefPtr<CefBrowser> browser, std::function<void(CefRefPtr<CefBrowserHost>)> task)
+            : browser_(std::move(browser)), task_(std::move(task))
+        {
+        }
+
+        void Execute() override
+        {
+            CefRefPtr<CefBrowser> browser = browser_;
+            if (!browser)
+                return;
+            CefRefPtr<CefBrowserHost> host = browser->GetHost();
+            if (host && task_)
+                task_(host);
+        }
+
+    private:
+        CefRefPtr<CefBrowser> browser_;
+        std::function<void(CefRefPtr<CefBrowserHost>)> task_;
+
+        IMPLEMENT_REFCOUNTING(BrowserHostTask);
+    };
+
     auto post_to_ui = [](CefRefPtr<CefBrowser> target, std::function<void(CefRefPtr<CefBrowserHost>)> task) {
         if (!target)
             return;
-        CefPostTask(TID_UI, CefCreateClosureTask([target, task = std::move(task)]() {
-            CefRefPtr<CefBrowserHost> host = target->GetHost();
-            if (host)
-                task(host);
-        }));
+        CefPostTask(TID_UI, new BrowserHostTask(target, std::move(task)));
     };
 
     while (true) {
