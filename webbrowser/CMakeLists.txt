@@ -246,17 +246,38 @@ endif ()
 # bundle. The FindCEF module does not currently populate the CEF_LIB_* paths
 # with that framework binary, so do it here if necessary to avoid link errors.
 if (APPLE)
-    set(_cef_framework "${CEF_BINARY_DIR}/Chromium Embedded Framework.framework/Chromium Embedded Framework")
-    if (NOT CEF_LIB_DEBUG AND EXISTS "${CEF_BINARY_DIR}/Debug")
-        set(CEF_LIB_DEBUG "${CEF_BINARY_DIR}/Debug/Chromium Embedded Framework.framework/Chromium Embedded Framework")
-    elseif (NOT CEF_LIB_DEBUG)
-        set(CEF_LIB_DEBUG "${_cef_framework}")
+    set(_cef_release_framework "")
+    set(_cef_debug_framework "")
+
+    if (EXISTS "${CEF_BINARY_DIR}/Release/Chromium Embedded Framework.framework/Chromium Embedded Framework")
+        set(_cef_release_framework "${CEF_BINARY_DIR}/Release/Chromium Embedded Framework.framework/Chromium Embedded Framework")
+    elseif (EXISTS "${CEF_BINARY_DIR}/Chromium Embedded Framework.framework/Chromium Embedded Framework")
+        set(_cef_release_framework "${CEF_BINARY_DIR}/Chromium Embedded Framework.framework/Chromium Embedded Framework")
     endif ()
-    if (NOT CEF_LIB_RELEASE AND EXISTS "${CEF_BINARY_DIR}/Release")
-        set(CEF_LIB_RELEASE "${CEF_BINARY_DIR}/Release/Chromium Embedded Framework.framework/Chromium Embedded Framework")
-    elseif (NOT CEF_LIB_RELEASE)
-        set(CEF_LIB_RELEASE "${_cef_framework}")
+
+    if (EXISTS "${CEF_BINARY_DIR}/Debug/Chromium Embedded Framework.framework/Chromium Embedded Framework")
+        set(_cef_debug_framework "${CEF_BINARY_DIR}/Debug/Chromium Embedded Framework.framework/Chromium Embedded Framework")
     endif ()
+
+    if (NOT _cef_release_framework)
+        message(FATAL_ERROR
+                "Chromium Embedded Framework binary not found in ${CEF_BINARY_DIR}. "
+                "Verify that the CEF archive extracted correctly.")
+    endif ()
+
+    if (NOT _cef_debug_framework)
+        # The Debug slice is rarely distributed; fall back to the Release
+        # framework so multi-config generators (like Xcode) still resolve the
+        # logical target when building Debug configurations.
+        set(_cef_debug_framework "${_cef_release_framework}")
+    endif ()
+
+    # The CEF helpers populate CEF_LIB_{DEBUG,RELEASE} as cache entries.  Force
+    # both configs to use the discovered framework path so the logical target
+    # resolves to an existing binary regardless of the selected build
+    # configuration.
+    set(CEF_LIB_DEBUG "${_cef_debug_framework}" CACHE FILEPATH "" FORCE)
+    set(CEF_LIB_RELEASE "${_cef_release_framework}" CACHE FILEPATH "" FORCE)
 endif ()
 
 # Logical target used to link the libcef library
