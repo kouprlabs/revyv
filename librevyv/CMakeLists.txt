@@ -17,6 +17,13 @@ if(APPLE)
     if(NOT LZO_DIR AND EXISTS "${_homebrew_root}/opt/lzo/lib/cmake/LZO/LZOConfig.cmake")
         set(LZO_DIR "${_homebrew_root}/opt/lzo/lib/cmake/LZO")
     endif()
+    if(NOT LZO_ROOT AND EXISTS "${_homebrew_root}/opt/lzo")
+        set(LZO_ROOT "${_homebrew_root}/opt/lzo")
+    endif()
+endif()
+
+if(APPLE AND NOT LZO_ROOT AND EXISTS "/usr/local/opt/lzo")
+    set(LZO_ROOT "/usr/local/opt/lzo")
 endif()
 
 find_package(ZeroMQ CONFIG REQUIRED)
