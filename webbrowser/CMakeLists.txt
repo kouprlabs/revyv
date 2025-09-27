@@ -203,6 +203,10 @@ elseif (DEFINED CEF_ROOT AND EXISTS "${CEF_ROOT}/include")
     list(APPEND _CEF_INCLUDE_HINTS "${CEF_ROOT}/include")
 endif ()
 
+if (DEFINED CEF_ROOT AND EXISTS "${CEF_ROOT}")
+    list(APPEND _CEF_INCLUDE_HINTS "${CEF_ROOT}")
+endif ()
+
 set(_CAIRO_TARGET "")
 set(_CAIRO_INCLUDE_HINTS "")
 
