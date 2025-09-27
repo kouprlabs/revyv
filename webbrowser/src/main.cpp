@@ -63,8 +63,17 @@ int main(int argc, char* argv[])
     fs::path resources_dir;
     fs::path locales_dir;
 #if defined(OS_MAC) || defined(__APPLE__)
-    resources_dir = exe_path.parent_path() / "Resources";
+    const fs::path exe_dir = exe_path.parent_path();
+    resources_dir = exe_dir / "Resources";
     locales_dir = resources_dir / "locales";
+
+    fs::path framework_dir = exe_dir / ".." / "Frameworks" / "Chromium Embedded Framework.framework";
+    framework_dir = fs::weakly_canonical(framework_dir, ec);
+    if (ec) {
+        ec.clear();
+        framework_dir = fs::absolute(framework_dir);
+    }
+    CefString(&settings.framework_dir_path) = framework_dir.string();
 #else
     resources_dir = exe_path.parent_path();
     locales_dir = resources_dir / "locales";
