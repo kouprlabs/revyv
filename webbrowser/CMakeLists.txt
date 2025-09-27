@@ -304,6 +304,14 @@ if (_CAIRO_INCLUDE_HINTS)
     target_include_directories(webbrowser PRIVATE ${_CAIRO_INCLUDE_HINTS})
 endif ()
 
+# Stage the shared librevyv runtime next to the executable so the
+# @loader_path rpath added above can resolve the dependency without
+# requiring users to tweak DYLD_LIBRARY_PATH manually.
+add_custom_command(TARGET webbrowser POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "$<TARGET_FILE:revyv>"
+                "$<TARGET_FILE_DIR:webbrowser>")
+
 # Copy binary and resource files to the target output directory
 COPY_FILES("webbrowser" "${CEF_BINARY_FILES}" "${CEF_BINARY_DIR}" "${CMAKE_CURRENT_BINARY_DIR}")
 COPY_FILES("webbrowser" "${CEF_RESOURCE_FILES}" "${CEF_RESOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}")
