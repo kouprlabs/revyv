@@ -400,7 +400,7 @@ if (APPLE)
     endif ()
 
     foreach(_root IN LISTS _cef_helper_search_roots)
-        file(GLOB _helpers "${_root}/* Helper*.app")
+        file(GLOB_RECURSE _helpers FOLLOW_SYMLINKS "${_root}/* Helper*.app")
         foreach(_helper IN LISTS _helpers)
             if (IS_DIRECTORY "${_helper}")
                 get_filename_component(_helper_name "${_helper}" NAME)
