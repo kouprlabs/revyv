@@ -59,9 +59,8 @@ int main(int argc, char* argv[])
     settings.no_sandbox = true;
     // macOS 15 currently triggers bogus certificate parsing failures for some
     // CEF requests (for example "GeneralNames is a sequence of 0 elements").
-    // Instruct CEF to ignore certificate errors so we can keep loading pages
-    // until Apple resolves the trust store regression.
-    settings.ignore_certificate_errors = true;
+    // Certificate errors are handled by BrowserClient::OnCertificateError so we
+    // can keep loading pages until Apple resolves the trust store regression.
 #endif
 
     namespace fs = std::filesystem;
