@@ -6,6 +6,7 @@
 #include <argh.h>
 #include <filesystem>
 #include <iostream>
+#include <string_view>
 #include <system_error>
 #include <revyv/revyv.h>
 #include <thread>
@@ -18,9 +19,54 @@ public:
         if (!command_line)
             return;
 
-        if (!command_line->HasSwitch("ignore-certificate-errors")) {
-            command_line->AppendSwitch("ignore-certificate-errors");
-        }
+        auto append_switch = [&command_line](const std::string& name) {
+            if (!command_line->HasSwitch(name))
+                command_line->AppendSwitch(name);
+        };
+
+        auto append_switch_with_value = [&command_line](const std::string& name, const std::string& value) {
+            std::string current = command_line->GetSwitchValue(name);
+            auto contains_value = [](const std::string& list, const std::string& token) {
+                size_t begin = 0;
+                while (begin <= list.length()) {
+                    const size_t end = list.find(',', begin);
+                    const std::string_view entry(list.data() + begin,
+                        (end == std::string::npos ? list.length() : end) - begin);
+                    if (entry == token)
+                        return true;
+                    if (end == std::string::npos)
+                        break;
+                    begin = end + 1;
+                }
+                return false;
+            };
+
+            if (current.empty()) {
+                command_line->AppendSwitchWithValue(name, value);
+            } else if (!contains_value(current, value)) {
+                current.append(",");
+                current.append(value);
+                command_line->AppendSwitchWithValue(name, current);
+            }
+        };
+
+        append_switch("ignore-certificate-errors");
+        append_switch("allow-insecure-localhost");
+        append_switch("allow-running-insecure-content");
+        append_switch("test-type");
+
+#if defined(OS_MAC) || defined(__APPLE__)
+        // Recent macOS releases ship a trust store that can return malformed
+        // certificate metadata for some well known sites ("GeneralNames is a
+        // sequence of 0 elements").  Instruct Chromium to use a lightweight
+        // in-memory keychain implementation instead of the system keychain so
+        // those bogus entries never reach the network stack.
+        append_switch("use-mock-keychain");
+#endif
+
+        constexpr char kDisabledSecurityFeatures[] =
+            "CertificateTransparencyComponentUpdater,ExpectCTReporting";
+        append_switch_with_value("disable-features", kDisabledSecurityFeatures);
     }
 
     IMPLEMENT_REFCOUNTING(WebBrowserApp);
@@ -77,6 +123,9 @@ int main(int argc, char* argv[])
     settings.no_sandbox = true;
     // macOS 15 currently triggers bogus certificate parsing failures for some
     // CEF requests (for example "GeneralNames is a sequence of 0 elements").
+    // Explicitly ignore certificate errors at the settings level so Chromium
+    // will proceed without surfacing the failure to the network stack.
+    settings.ignore_certificate_errors = true;
     // Certificate errors are handled by BrowserClient::OnCertificateError so we
     // can keep loading pages until Apple resolves the trust store regression.
 #endif
