@@ -10,6 +10,22 @@
 #include <revyv/revyv.h>
 #include <thread>
 
+class WebBrowserApp : public CefApp {
+public:
+    void OnBeforeCommandLineProcessing(const CefString& process_type,
+        CefRefPtr<CefCommandLine> command_line) override
+    {
+        if (!command_line)
+            return;
+
+        if (!command_line->HasSwitch("ignore-certificate-errors")) {
+            command_line->AppendSwitch("ignore-certificate-errors");
+        }
+    }
+
+    IMPLEMENT_REFCOUNTING(WebBrowserApp);
+};
+
 void* revyv = nullptr;
 
 int main(int argc, char* argv[])
@@ -39,7 +55,9 @@ int main(int argc, char* argv[])
         height = values[3];
     }
 
-    int result = CefExecuteProcess(args, nullptr, nullptr);
+    CefRefPtr<WebBrowserApp> app(new WebBrowserApp());
+
+    int result = CefExecuteProcess(args, app.get(), nullptr);
     if (result >= 0) {
         // The child proccess terminated, we exit
         return result;
@@ -109,7 +127,7 @@ int main(int argc, char* argv[])
         ec.clear();
     }
     CefString(&settings.root_cache_path) = cache_root.string();
-    if (!CefInitialize(args, settings, nullptr, nullptr)) {
+    if (!CefInitialize(args, settings, app.get(), nullptr)) {
         return -1;
     }
 
