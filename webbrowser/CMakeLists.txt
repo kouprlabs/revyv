@@ -147,6 +147,48 @@ endif ()
 # Allow includes relative to the current source directory
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
+set(_CAIRO_TARGET "")
+set(_CAIRO_INCLUDE_HINTS "")
+
+if (APPLE)
+    set(_brew_prefixes "/opt/homebrew" "/usr/local")
+    foreach(_prefix IN LISTS _brew_prefixes)
+        if (NOT _cairo_root AND EXISTS "${_prefix}/opt/cairo")
+            set(_cairo_root "${_prefix}/opt/cairo")
+        endif ()
+    endforeach ()
+
+    if (_cairo_root AND EXISTS "${_cairo_root}/lib/libcairo.dylib")
+        set(_CAIRO_TARGET "${_cairo_root}/lib/libcairo.dylib")
+        if (EXISTS "${_cairo_root}/include")
+            list(APPEND _CAIRO_INCLUDE_HINTS "${_cairo_root}/include")
+        endif ()
+    endif ()
+
+    if (NOT _CAIRO_TARGET)
+        message(FATAL_ERROR "Cairo not found in Homebrew. Install it with 'brew install cairo'.")
+    endif ()
+else ()
+    find_package(Cairo REQUIRED)
+
+    if (TARGET Cairo::Cairo)
+        set(_CAIRO_TARGET Cairo::Cairo)
+    elseif (DEFINED CAIRO_LIBRARIES)
+        set(_CAIRO_TARGET ${CAIRO_LIBRARIES})
+        if (DEFINED CAIRO_INCLUDE_DIRS)
+            list(APPEND _CAIRO_INCLUDE_HINTS ${CAIRO_INCLUDE_DIRS})
+        elseif (DEFINED CAIRO_INCLUDE_DIR)
+            list(APPEND _CAIRO_INCLUDE_HINTS ${CAIRO_INCLUDE_DIR})
+        endif ()
+    else ()
+        message(FATAL_ERROR "Cairo configuration did not provide libraries to link against.")
+    endif ()
+endif ()
+
+if (NOT _CAIRO_TARGET)
+    message(FATAL_ERROR "Cairo not found. Install Cairo or provide the library path explicitly.")
+endif ()
+
 # Set properties common to all example targets.
 macro(SET_EXAMPLE_PROPERTIES target)
     # Output all binaries to the configuration-specific build directory.
@@ -221,7 +263,11 @@ endif ()
 ADD_LOGICAL_TARGET("libcef_lib" "${CEF_LIB_DEBUG}" "${CEF_LIB_RELEASE}")
 
 add_dependencies(webbrowser libcef_dll_wrapper)
-target_link_libraries(webbrowser libcef_lib libcef_dll_wrapper ${CEF_STANDARD_LIBS} revyv cairo)
+target_link_libraries(webbrowser libcef_lib libcef_dll_wrapper ${CEF_STANDARD_LIBS} revyv ${_CAIRO_TARGET})
+
+if (_CAIRO_INCLUDE_HINTS)
+    target_include_directories(webbrowser PRIVATE ${_CAIRO_INCLUDE_HINTS})
+endif ()
 
 # Copy binary and resource files to the target output directory
 COPY_FILES("webbrowser" "${CEF_BINARY_FILES}" "${CEF_BINARY_DIR}" "${CMAKE_CURRENT_BINARY_DIR}")
