@@ -6,6 +6,7 @@
 #include <argh.h>
 #include <filesystem>
 #include <iostream>
+#include <system_error>
 #include <revyv/revyv.h>
 #include <thread>
 
@@ -52,12 +53,11 @@ int main(int argc, char* argv[])
     settings.windowless_rendering_enabled = true;
 
     namespace fs = std::filesystem;
-    fs::path exe_path;
-    try {
-        exe_path = fs::canonical(fs::absolute(argv[0]));
-    }
-    catch (const fs::filesystem_error&) {
-        exe_path = fs::absolute(argv[0]);
+    std::error_code ec;
+    fs::path exe_path = fs::absolute(argv[0]);
+    fs::path canonical_path = fs::canonical(exe_path, ec);
+    if (!ec) {
+        exe_path = canonical_path;
     }
 
     fs::path resources_dir;
