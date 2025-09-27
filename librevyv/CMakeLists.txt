@@ -1,9 +1,28 @@
 project(asl)
 
-# Ensure ZeroMQ and cppzmq discovery mirrors the compositor target so the
-# shared library exposes the correct usage requirements to dependants.
-include("${CMAKE_SOURCE_DIR}/cmake/RevyvZeroMQ.cmake")
-revyv_require_zmq()
+if(APPLE)
+    list(APPEND CMAKE_PREFIX_PATH
+        "/opt/homebrew"
+        "/opt/homebrew/opt/zeromq"
+        "/opt/homebrew/opt/cppzmq"
+    )
+endif()
+
+find_package(ZeroMQ REQUIRED)
+find_package(cppzmq REQUIRED)
+
+set(_ZEROMQ_TARGET ZeroMQ::libzmq)
+if(NOT TARGET ${_ZEROMQ_TARGET})
+    set(_ZEROMQ_TARGET ZeroMQ::ZeroMQ)
+endif()
+if(NOT TARGET ${_ZEROMQ_TARGET})
+    message(FATAL_ERROR "ZeroMQ imported target not found. Install a ZeroMQ package that provides CMake targets.")
+endif()
+
+set(_CPPZMQ_TARGET cppzmq::cppzmq)
+if(NOT TARGET ${_CPPZMQ_TARGET})
+    message(FATAL_ERROR "cppzmq imported target not found. Install a cppzmq package that provides CMake targets.")
+endif()
 
 set(SOURCES
         src/capi.cpp
@@ -25,8 +44,8 @@ target_include_directories(revyv
 
 target_link_libraries(revyv
     PUBLIC
-        cppzmq::cppzmq
-        ZeroMQ::libzmq
+        ${_CPPZMQ_TARGET}
+        ${_ZEROMQ_TARGET}
     PRIVATE
         lzo2
 )

@@ -1,31 +1,34 @@
 project(compositor)
 
-# Ensure ZeroMQ and cppzmq are available so the compositor target inherits the
-# correct include directories and link libraries on all platforms.
-include("${CMAKE_SOURCE_DIR}/cmake/RevyvZeroMQ.cmake")
-revyv_require_zmq()
+if(APPLE)
+    list(APPEND CMAKE_PREFIX_PATH
+        "/opt/homebrew"
+        "/opt/homebrew/opt/sdl2"
+        "/opt/homebrew/opt/zeromq"
+        "/opt/homebrew/opt/cppzmq"
+    )
+endif()
 
-# Discover SDL2 so platform-specific include directories and link flags are
-# propagated to the compositor target. Prefer the modern CMake package on
-# systems such as Homebrew and fall back to pkg-config if only a .pc file is
-# available (e.g. some Linux distributions).
-find_package(SDL2 CONFIG QUIET)
-if(NOT TARGET SDL2::SDL2)
-    find_package(PkgConfig QUIET)
-    if(PkgConfig_FOUND)
-        pkg_check_modules(SDL2 QUIET sdl2 IMPORTED_TARGET)
-    endif()
+find_package(ZeroMQ REQUIRED)
+find_package(cppzmq REQUIRED)
+find_package(SDL2 REQUIRED)
 
-    if(SDL2_FOUND AND NOT TARGET SDL2::SDL2)
-        add_library(SDL2::SDL2 INTERFACE IMPORTED)
-        set_target_properties(SDL2::SDL2 PROPERTIES
-            INTERFACE_INCLUDE_DIRECTORIES "${SDL2_INCLUDE_DIRS}"
-            INTERFACE_LINK_LIBRARIES "${SDL2_LIBRARIES}"
-            INTERFACE_COMPILE_OPTIONS "${SDL2_CFLAGS_OTHER}"
-        )
-    elseif(NOT TARGET SDL2::SDL2)
-        message(FATAL_ERROR "SDL2 not found. Install SDL2 or provide SDL2_DIR.")
-    endif()
+set(_ZEROMQ_TARGET ZeroMQ::libzmq)
+if(NOT TARGET ${_ZEROMQ_TARGET})
+    set(_ZEROMQ_TARGET ZeroMQ::ZeroMQ)
+endif()
+if(NOT TARGET ${_ZEROMQ_TARGET})
+    message(FATAL_ERROR "ZeroMQ imported target not found. Install a ZeroMQ package that provides CMake targets.")
+endif()
+
+set(_CPPZMQ_TARGET cppzmq::cppzmq)
+if(NOT TARGET ${_CPPZMQ_TARGET})
+    message(FATAL_ERROR "cppzmq imported target not found. Install a cppzmq package that provides CMake targets.")
+endif()
+
+set(_SDL2_TARGET SDL2::SDL2)
+if(NOT TARGET ${_SDL2_TARGET})
+    message(FATAL_ERROR "SDL2 imported target not found. Install SDL2 or provide SDL2_DIR.")
 endif()
 
 set(SOURCES
@@ -61,9 +64,9 @@ target_include_directories(compositor
 
 target_link_libraries(compositor
     PRIVATE
-        SDL2::SDL2
-        ZeroMQ::libzmq
-        cppzmq::cppzmq
+        ${_SDL2_TARGET}
+        ${_ZEROMQ_TARGET}
+        ${_CPPZMQ_TARGET}
         pthread
         lzo2
 )
