@@ -57,6 +57,11 @@ int main(int argc, char* argv[])
     // without the full helper bundle layout, so disable the CEF sandbox on
     // macOS to allow the renderer and GPU subprocesses to launch.
     settings.no_sandbox = true;
+    // macOS 15 currently triggers bogus certificate parsing failures for some
+    // CEF requests (for example "GeneralNames is a sequence of 0 elements").
+    // Instruct CEF to ignore certificate errors so we can keep loading pages
+    // until Apple resolves the trust store regression.
+    settings.ignore_certificate_errors = true;
 #endif
 
     namespace fs = std::filesystem;

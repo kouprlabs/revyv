@@ -33,8 +33,11 @@ bool BrowserClient::OnCertificateError(CefRefPtr<CefBrowser> browser,
 {
     if (callback.get()) {
         callback->Continue();
-        return true;
     }
 
-    return false;
+    // Always report that the error has been handled so CEF proceeds with the
+    // request even if a callback wasn't supplied. macOS 15 currently surfaces
+    // spurious certificate parsing failures for some well known sites and we
+    // want to keep loading the page regardless.
+    return true;
 }
