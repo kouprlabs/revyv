@@ -249,19 +249,28 @@ if (APPLE)
     set(_cef_release_framework "")
     set(_cef_debug_framework "")
 
-    if (EXISTS "${CEF_BINARY_DIR}/Release/Chromium Embedded Framework.framework/Chromium Embedded Framework")
-        set(_cef_release_framework "${CEF_BINARY_DIR}/Release/Chromium Embedded Framework.framework/Chromium Embedded Framework")
-    elseif (EXISTS "${CEF_BINARY_DIR}/Chromium Embedded Framework.framework/Chromium Embedded Framework")
-        set(_cef_release_framework "${CEF_BINARY_DIR}/Chromium Embedded Framework.framework/Chromium Embedded Framework")
+    # Multi-config generators expose CEF_BINARY_DIR using a generator expression
+    # (for example, "$<CONFIGURATION>") which cannot be resolved while
+    # configuring. Probe the extraction root instead so we can verify the
+    # unpacked framework layout up-front.
+    set(_cef_probe_root "${CEF_BINARY_DIR}")
+    if ("${_cef_probe_root}" MATCHES "\$<CONFIGURATION>")
+        set(_cef_probe_root "${CEF_ROOT}")
     endif ()
 
-    if (EXISTS "${CEF_BINARY_DIR}/Debug/Chromium Embedded Framework.framework/Chromium Embedded Framework")
-        set(_cef_debug_framework "${CEF_BINARY_DIR}/Debug/Chromium Embedded Framework.framework/Chromium Embedded Framework")
+    if (EXISTS "${_cef_probe_root}/Release/Chromium Embedded Framework.framework/Chromium Embedded Framework")
+        set(_cef_release_framework "${_cef_probe_root}/Release/Chromium Embedded Framework.framework/Chromium Embedded Framework")
+    elseif (EXISTS "${_cef_probe_root}/Chromium Embedded Framework.framework/Chromium Embedded Framework")
+        set(_cef_release_framework "${_cef_probe_root}/Chromium Embedded Framework.framework/Chromium Embedded Framework")
+    endif ()
+
+    if (EXISTS "${_cef_probe_root}/Debug/Chromium Embedded Framework.framework/Chromium Embedded Framework")
+        set(_cef_debug_framework "${_cef_probe_root}/Debug/Chromium Embedded Framework.framework/Chromium Embedded Framework")
     endif ()
 
     if (NOT _cef_release_framework)
         message(FATAL_ERROR
-                "Chromium Embedded Framework binary not found in ${CEF_BINARY_DIR}. "
+                "Chromium Embedded Framework binary not found in ${_cef_probe_root}. "
                 "Verify that the CEF archive extracted correctly.")
     endif ()
 
