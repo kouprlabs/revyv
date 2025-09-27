@@ -319,9 +319,17 @@ if (APPLE)
     set(_cef_release_framework "${_cef_release_bundle}/Chromium Embedded Framework")
     set(_cef_debug_framework "${_cef_debug_bundle}/Chromium Embedded Framework")
 
-    set(_cef_resource_candidates
+    set(_cef_resource_candidates "${_cef_release_bundle}/Resources")
+    list(APPEND _cef_resource_candidates
             "${_cef_probe_root}/Resources"
             "${_cef_probe_root}/Release/Resources")
+
+    get_filename_component(_cef_probe_root_parent "${_cef_probe_root}" DIRECTORY)
+    if (NOT _cef_probe_root_parent STREQUAL "${_cef_probe_root}")
+        list(APPEND _cef_resource_candidates
+                "${_cef_probe_root_parent}/Resources"
+                "${_cef_probe_root_parent}/Release/Resources")
+    endif ()
 
     foreach(_candidate IN LISTS _cef_resource_candidates)
         if (EXISTS "${_candidate}")
@@ -330,9 +338,21 @@ if (APPLE)
         endif ()
     endforeach ()
 
-    if (EXISTS "${_cef_probe_root}/Debug/Resources")
-        set(_cef_debug_resources "${_cef_probe_root}/Debug/Resources")
+    set(_cef_debug_resource_candidates "")
+    if (DEFINED _cef_debug_bundle AND _cef_debug_bundle)
+        list(APPEND _cef_debug_resource_candidates "${_cef_debug_bundle}/Resources")
     endif ()
+    list(APPEND _cef_debug_resource_candidates "${_cef_probe_root}/Debug/Resources")
+    if (NOT _cef_probe_root_parent STREQUAL "${_cef_probe_root}")
+        list(APPEND _cef_debug_resource_candidates "${_cef_probe_root_parent}/Debug/Resources")
+    endif ()
+
+    foreach(_candidate IN LISTS _cef_debug_resource_candidates)
+        if (EXISTS "${_candidate}")
+            set(_cef_debug_resources "${_candidate}")
+            break()
+        endif ()
+    endforeach ()
 
     if (NOT _cef_release_resources)
         message(FATAL_ERROR
