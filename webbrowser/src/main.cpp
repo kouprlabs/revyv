@@ -82,6 +82,15 @@ int main(int argc, char* argv[])
     }
     CefString(&settings.framework_dir_path) = framework_dir.string();
     CefString(&settings.main_bundle_path) = exe_dir.string();
+#ifdef CEF_NO_HELPERS
+    // Recent CEF binary distributions for macOS no longer ship prebuilt helper
+    // applications. When the helpers are absent CEF will still try to spawn
+    // them from the default bundle locations which fails at runtime. Point the
+    // browser subprocess path at the main executable instead so the existing
+    // process entry point handles child process roles such as the renderer and
+    // GPU helpers.
+    CefString(&settings.browser_subprocess_path) = exe_path.string();
+#endif
 #else
     resources_dir = exe_path.parent_path();
     locales_dir = resources_dir / "locales";

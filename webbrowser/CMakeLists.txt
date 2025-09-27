@@ -463,6 +463,12 @@ endif ()
 # Logical target used to link the libcef library
 ADD_LOGICAL_TARGET("libcef_lib" "${CEF_LIB_DEBUG}" "${CEF_LIB_RELEASE}")
 
+if (APPLE)
+    if (NOT _cef_has_helpers)
+        target_compile_definitions(webbrowser PRIVATE CEF_NO_HELPERS=1)
+    endif ()
+endif ()
+
 add_dependencies(webbrowser libcef_dll_wrapper)
 target_link_libraries(webbrowser libcef_lib libcef_dll_wrapper ${CEF_STANDARD_LIBS} revyv ${_CAIRO_TARGET})
 
