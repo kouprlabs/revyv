@@ -1,7 +1,17 @@
 cmake_minimum_required(VERSION 3.16)
 
 if(APPLE)
-    set(CMAKE_OSX_DEPLOYMENT_TARGET "12.0" CACHE STRING "Minimum supported macOS version")
+    if(NOT DEFINED CMAKE_OSX_DEPLOYMENT_TARGET OR CMAKE_OSX_DEPLOYMENT_TARGET STREQUAL "")
+        if(DEFINED CMAKE_SYSTEM_VERSION AND NOT CMAKE_SYSTEM_VERSION STREQUAL "")
+            set(_revyv_default_macos_target "${CMAKE_SYSTEM_VERSION}")
+        else()
+            set(_revyv_default_macos_target "12.0")
+        endif()
+        set(CMAKE_OSX_DEPLOYMENT_TARGET "${_revyv_default_macos_target}" CACHE STRING "Minimum supported macOS version")
+    else()
+        set(CMAKE_OSX_DEPLOYMENT_TARGET "${CMAKE_OSX_DEPLOYMENT_TARGET}" CACHE STRING "Minimum supported macOS version")
+    endif()
+    unset(_revyv_default_macos_target)
 endif()
 
 project(revyv)
