@@ -6,6 +6,7 @@ if(APPLE)
         "/opt/homebrew/opt/sdl2"
         "/opt/homebrew/opt/zeromq"
         "/opt/homebrew/opt/cppzmq"
+        "/opt/homebrew/opt/lzo"
     )
 endif()
 
@@ -37,6 +38,8 @@ if(NOT SDL2_FOUND)
     find_package(SDL2 REQUIRED)
 endif()
 
+find_package(LZO REQUIRED)
+
 set(_SDL2_TARGET "")
 set(_SDL2_NEEDS_INCLUDES OFF)
 if(TARGET SDL2::SDL2)
@@ -48,6 +51,26 @@ endif()
 
 if(NOT _SDL2_TARGET)
     message(FATAL_ERROR "SDL2 not found. Install SDL2 or provide SDL2_DIR.")
+endif()
+
+set(_LZO_TARGET "")
+set(_LZO_NEEDS_INCLUDES OFF)
+if(TARGET LZO::lzo2)
+    set(_LZO_TARGET LZO::lzo2)
+elseif(DEFINED LZO_LIBRARIES)
+    set(_LZO_TARGET ${LZO_LIBRARIES})
+    set(_LZO_NEEDS_INCLUDES ON)
+endif()
+
+if(NOT _LZO_TARGET)
+    message(FATAL_ERROR "LZO not found. Install LZO or provide LZO_DIR.")
+endif()
+
+set(_LZO_INCLUDE_PATH "")
+if(DEFINED LZO_INCLUDE_DIRS)
+    set(_LZO_INCLUDE_PATH ${LZO_INCLUDE_DIRS})
+elseif(DEFINED LZO_INCLUDE_DIR)
+    set(_LZO_INCLUDE_PATH ${LZO_INCLUDE_DIR})
 endif()
 
 set(SOURCES
@@ -89,12 +112,16 @@ if(_ZEROMQ_NEEDS_INCLUDES)
     target_include_directories(compositor PRIVATE ${ZeroMQ_INCLUDE_DIRS})
 endif()
 
+if(_LZO_NEEDS_INCLUDES AND _LZO_INCLUDE_PATH)
+    target_include_directories(compositor PRIVATE ${_LZO_INCLUDE_PATH})
+endif()
+
 target_link_libraries(compositor
     PRIVATE
         ${_SDL2_TARGET}
         ${_ZEROMQ_TARGET}
         ${_CPPZMQ_TARGET}
         pthread
-        lzo2
+        ${_LZO_TARGET}
 )
 set_property(TARGET compositor PROPERTY CXX_STANDARD 17)

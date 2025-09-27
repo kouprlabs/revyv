@@ -5,6 +5,7 @@ if(APPLE)
         "/opt/homebrew"
         "/opt/homebrew/opt/zeromq"
         "/opt/homebrew/opt/cppzmq"
+        "/opt/homebrew/opt/lzo"
     )
 endif()
 
@@ -31,6 +32,28 @@ endif()
 find_package(cppzmq CONFIG REQUIRED)
 set(_CPPZMQ_TARGET cppzmq::cppzmq)
 
+find_package(LZO REQUIRED)
+
+set(_LZO_TARGET "")
+set(_LZO_NEEDS_INCLUDES OFF)
+if(TARGET LZO::lzo2)
+    set(_LZO_TARGET LZO::lzo2)
+elseif(DEFINED LZO_LIBRARIES)
+    set(_LZO_TARGET ${LZO_LIBRARIES})
+    set(_LZO_NEEDS_INCLUDES ON)
+endif()
+
+if(NOT _LZO_TARGET)
+    message(FATAL_ERROR "LZO not found. Install LZO or provide LZO_DIR.")
+endif()
+
+set(_LZO_INCLUDE_PATH "")
+if(DEFINED LZO_INCLUDE_DIRS)
+    set(_LZO_INCLUDE_PATH ${LZO_INCLUDE_DIRS})
+elseif(DEFINED LZO_INCLUDE_DIR)
+    set(_LZO_INCLUDE_PATH ${LZO_INCLUDE_DIR})
+endif()
+
 set(SOURCES
         src/capi.cpp
         src/connector.cpp
@@ -54,11 +77,15 @@ target_link_libraries(revyv
         ${_CPPZMQ_TARGET}
         ${_ZEROMQ_TARGET}
     PRIVATE
-        lzo2
+        ${_LZO_TARGET}
 )
 
 if(_ZEROMQ_NEEDS_INCLUDES)
     target_include_directories(revyv PUBLIC ${ZeroMQ_INCLUDE_DIRS})
+endif()
+
+if(_LZO_NEEDS_INCLUDES AND _LZO_INCLUDE_PATH)
+    target_include_directories(revyv PUBLIC ${_LZO_INCLUDE_PATH})
 endif()
 
 set_property(TARGET revyv PROPERTY CXX_STANDARD 17)
