@@ -74,6 +74,7 @@ int main(int argc, char* argv[])
         framework_dir = fs::absolute(framework_dir);
     }
     CefString(&settings.framework_dir_path) = framework_dir.string();
+    CefString(&settings.main_bundle_path) = exe_dir.string();
 #else
     resources_dir = exe_path.parent_path();
     locales_dir = resources_dir / "locales";
