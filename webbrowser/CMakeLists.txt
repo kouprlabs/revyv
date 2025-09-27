@@ -12,6 +12,38 @@ set_property(GLOBAL PROPERTY OS_FOLDERS ON)
 # Specify the CEF distribution version
 set(CEF_VERSION "140.1.14+geb1c06e+chromium-140.0.7339.185")
 
+function(DownloadCEF platform version download_dir)
+    set(CEF_DISTRIBUTION "cef_binary_${version}_${platform}")
+    set(CEF_DOWNLOAD_DIR "${download_dir}")
+
+    set(CEF_ROOT "${CEF_DOWNLOAD_DIR}/${CEF_DISTRIBUTION}" CACHE INTERNAL "CEF_ROOT")
+
+    if (NOT IS_DIRECTORY "${CEF_ROOT}")
+        set(CEF_DOWNLOAD_FILENAME "${CEF_DISTRIBUTION}.tar.bz2")
+        set(CEF_DOWNLOAD_PATH "${CEF_DOWNLOAD_DIR}/${CEF_DOWNLOAD_FILENAME}")
+
+        if (NOT EXISTS "${CEF_DOWNLOAD_PATH}")
+            set(CEF_DOWNLOAD_URL "https://cef-builds.spotifycdn.com/${CEF_DOWNLOAD_FILENAME}")
+            string(REPLACE "+" "%2B" CEF_DOWNLOAD_URL_ESCAPED ${CEF_DOWNLOAD_URL})
+
+            message(STATUS "Downloading ${CEF_DOWNLOAD_PATH}.sha1 from ${CEF_DOWNLOAD_URL_ESCAPED}...")
+            file(DOWNLOAD "${CEF_DOWNLOAD_URL_ESCAPED}.sha1" "${CEF_DOWNLOAD_PATH}.sha1")
+            file(READ "${CEF_DOWNLOAD_PATH}.sha1" CEF_SHA1)
+
+            message(STATUS "Downloading ${CEF_DOWNLOAD_PATH}...")
+            file(
+                    DOWNLOAD "${CEF_DOWNLOAD_URL_ESCAPED}" "${CEF_DOWNLOAD_PATH}"
+                    EXPECTED_HASH SHA1=${CEF_SHA1}
+                    SHOW_PROGRESS)
+        endif ()
+
+        message(STATUS "Extracting ${CEF_DOWNLOAD_PATH}...")
+        execute_process(
+                COMMAND ${CMAKE_COMMAND} -E tar xzf "${CEF_DOWNLOAD_DIR}/${CEF_DOWNLOAD_FILENAME}"
+                WORKING_DIRECTORY ${CEF_DOWNLOAD_DIR})
+    endif ()
+endfunction()
+
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
     if ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "arm")
         set(CEF_PLATFORM "linuxarm")
@@ -32,11 +64,7 @@ else ()
     message(FATAL_ERROR "Unsupported host platform: ${CMAKE_SYSTEM_NAME}")
 endif ()
 
-# Add this project's cmake/ directory to the module path
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-
-# Download and extract the CEF binary distribution (executes DownloadCEF.cmake)
-include(DownloadCEF)
+# Download and extract the CEF binary distribution
 DownloadCEF("${CEF_PLATFORM}" "${CEF_VERSION}" "${PROJECT_SOURCE_DIR}/third_party/cef")
 
 # Add the CEF binary distribution's cmake/ directory to the module path
@@ -248,6 +276,10 @@ endif ()
 if (APPLE)
     set(_cef_release_framework "")
     set(_cef_debug_framework "")
+    set(_cef_release_bundle "")
+    set(_cef_debug_bundle "")
+    set(_cef_release_resources "")
+    set(_cef_debug_resources "")
 
     # Multi-config generators expose CEF_BINARY_DIR using a generator expression
     # (for example, "$<CONFIGURATION>") which cannot be resolved while
@@ -259,32 +291,58 @@ if (APPLE)
         set(_cef_probe_root "${CEF_ROOT}")
     endif ()
 
-    if (EXISTS "${_cef_probe_root}/Release/Chromium Embedded Framework.framework/Chromium Embedded Framework")
-        set(_cef_release_framework "${_cef_probe_root}/Release/Chromium Embedded Framework.framework/Chromium Embedded Framework")
-    elseif (EXISTS "${_cef_probe_root}/Chromium Embedded Framework.framework/Chromium Embedded Framework")
-        set(_cef_release_framework "${_cef_probe_root}/Chromium Embedded Framework.framework/Chromium Embedded Framework")
-    endif ()
+    set(_cef_bundle_candidates
+            "${_cef_probe_root}/Chromium Embedded Framework.framework"
+            "${_cef_probe_root}/Release/Chromium Embedded Framework.framework")
+
+    foreach(_candidate IN LISTS _cef_bundle_candidates)
+        if (EXISTS "${_candidate}/Chromium Embedded Framework")
+            set(_cef_release_bundle "${_candidate}")
+            break()
+        endif ()
+    endforeach ()
 
     if (EXISTS "${_cef_probe_root}/Debug/Chromium Embedded Framework.framework/Chromium Embedded Framework")
-        set(_cef_debug_framework "${_cef_probe_root}/Debug/Chromium Embedded Framework.framework/Chromium Embedded Framework")
+        set(_cef_debug_bundle "${_cef_probe_root}/Debug/Chromium Embedded Framework.framework")
     endif ()
 
-    if (NOT _cef_release_framework)
+    if (NOT _cef_release_bundle)
         message(FATAL_ERROR
                 "Chromium Embedded Framework binary not found in ${_cef_probe_root}. "
                 "Verify that the CEF archive extracted correctly.")
     endif ()
 
-    if (NOT _cef_debug_framework)
-        # The Debug slice is rarely distributed; fall back to the Release
-        # framework so multi-config generators (like Xcode) still resolve the
-        # logical target when building Debug configurations.
-        set(_cef_debug_framework "${_cef_release_framework}")
+    if (NOT _cef_debug_bundle)
+        set(_cef_debug_bundle "${_cef_release_bundle}")
     endif ()
 
-    # Record the containing framework bundle so we can stage it alongside the
-    # built executable after linking.
-    get_filename_component(_cef_framework_dir "${_cef_release_framework}" DIRECTORY)
+    set(_cef_release_framework "${_cef_release_bundle}/Chromium Embedded Framework")
+    set(_cef_debug_framework "${_cef_debug_bundle}/Chromium Embedded Framework")
+
+    set(_cef_resource_candidates
+            "${_cef_probe_root}/Resources"
+            "${_cef_probe_root}/Release/Resources")
+
+    foreach(_candidate IN LISTS _cef_resource_candidates)
+        if (EXISTS "${_candidate}")
+            set(_cef_release_resources "${_candidate}")
+            break()
+        endif ()
+    endforeach ()
+
+    if (EXISTS "${_cef_probe_root}/Debug/Resources")
+        set(_cef_debug_resources "${_cef_probe_root}/Debug/Resources")
+    endif ()
+
+    if (NOT _cef_release_resources)
+        message(FATAL_ERROR
+                "CEF Resources directory not found in ${_cef_probe_root}. "
+                "Verify that the CEF archive extracted correctly.")
+    endif ()
+
+    if (NOT _cef_debug_resources)
+        set(_cef_debug_resources "${_cef_release_resources}")
+    endif ()
 
     # The CEF helpers populate CEF_LIB_{DEBUG,RELEASE} as cache entries.  Force
     # both configs to use the discovered framework path so the logical target
@@ -317,18 +375,16 @@ COPY_FILES("webbrowser" "${CEF_BINARY_FILES}" "${CEF_BINARY_DIR}" "${CMAKE_CURRE
 COPY_FILES("webbrowser" "${CEF_RESOURCE_FILES}" "${CEF_RESOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}")
 
 if (APPLE)
-    set(_stage_directory_script "${CMAKE_CURRENT_SOURCE_DIR}/cmake/StageDirectory.cmake")
-
     add_custom_command(TARGET webbrowser POST_BUILD
-            COMMAND ${CMAKE_COMMAND}
-                    -DSRC_DIR="${_cef_framework_dir}"
-                    -DDST_DIR="$<TARGET_FILE_DIR:webbrowser>/../Frameworks"
-                    -P "${_stage_directory_script}"
-            COMMAND ${CMAKE_COMMAND}
-                    -DSRC_DIR="${CEF_RESOURCE_DIR}"
-                    -DDST_DIR="$<TARGET_FILE_DIR:webbrowser>/Resources"
-                    -DCOPY_CONTENTS=ON
-                    -P "${_stage_directory_script}")
+            COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:webbrowser>/../Frameworks"
+            COMMAND ${CMAKE_COMMAND} -E remove_directory "$<TARGET_FILE_DIR:webbrowser>/../Frameworks/Chromium Embedded Framework.framework"
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+                    "$<IF:$<CONFIG:Debug>,${_cef_debug_bundle},${_cef_release_bundle}>"
+                    "$<TARGET_FILE_DIR:webbrowser>/../Frameworks/Chromium Embedded Framework.framework"
+            COMMAND ${CMAKE_COMMAND} -E remove_directory "$<TARGET_FILE_DIR:webbrowser>/Resources"
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+                    "$<IF:$<CONFIG:Debug>,${_cef_debug_resources},${_cef_release_resources}>"
+                    "$<TARGET_FILE_DIR:webbrowser>/Resources")
 endif ()
 
 if (NOT APPLE)
