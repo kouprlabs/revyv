@@ -254,7 +254,8 @@ if (APPLE)
     # configuring. Probe the extraction root instead so we can verify the
     # unpacked framework layout up-front.
     set(_cef_probe_root "${CEF_BINARY_DIR}")
-    if ("${_cef_probe_root}" MATCHES "\$<CONFIGURATION>")
+    string(FIND "${_cef_probe_root}" "\$<CONFIGURATION>" _cef_config_index)
+    if (_cef_config_index GREATER -1)
         set(_cef_probe_root "${CEF_ROOT}")
     endif ()
 
