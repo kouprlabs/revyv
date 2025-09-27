@@ -317,19 +317,18 @@ COPY_FILES("webbrowser" "${CEF_BINARY_FILES}" "${CEF_BINARY_DIR}" "${CMAKE_CURRE
 COPY_FILES("webbrowser" "${CEF_RESOURCE_FILES}" "${CEF_RESOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}")
 
 if (APPLE)
-    add_custom_command(TARGET webbrowser POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E make_directory
-                    "$<TARGET_FILE_DIR:webbrowser>/../Frameworks"
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-                    "${_cef_framework_dir}"
-                    "$<TARGET_FILE_DIR:webbrowser>/../Frameworks/Chromium Embedded Framework.framework")
+    set(_stage_directory_script "${CMAKE_CURRENT_SOURCE_DIR}/cmake/StageDirectory.cmake")
 
     add_custom_command(TARGET webbrowser POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E make_directory
-                    "$<TARGET_FILE_DIR:webbrowser>/Resources"
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-                    "${CEF_RESOURCE_DIR}"
-                    "$<TARGET_FILE_DIR:webbrowser>/Resources")
+            COMMAND ${CMAKE_COMMAND}
+                    -DSRC_DIR="${_cef_framework_dir}"
+                    -DDST_DIR="$<TARGET_FILE_DIR:webbrowser>/../Frameworks"
+                    -P "${_stage_directory_script}"
+            COMMAND ${CMAKE_COMMAND}
+                    -DSRC_DIR="${CEF_RESOURCE_DIR}"
+                    -DDST_DIR="$<TARGET_FILE_DIR:webbrowser>/Resources"
+                    -DCOPY_CONTENTS=ON
+                    -P "${_stage_directory_script}")
 endif ()
 
 if (NOT APPLE)
