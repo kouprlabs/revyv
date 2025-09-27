@@ -1,68 +1,86 @@
 project(asl)
 
-if(APPLE)
-    set(_homebrew_root "/opt/homebrew")
-    list(APPEND CMAKE_PREFIX_PATH
-        "${_homebrew_root}"
-        "${_homebrew_root}/opt/zeromq"
-        "${_homebrew_root}/opt/cppzmq"
-        "${_homebrew_root}/opt/lzo"
-    )
-    if(NOT ZeroMQ_DIR AND EXISTS "${_homebrew_root}/opt/zeromq/lib/cmake/ZeroMQ/ZeroMQConfig.cmake")
-        set(ZeroMQ_DIR "${_homebrew_root}/opt/zeromq/lib/cmake/ZeroMQ")
-    endif()
-    if(NOT cppzmq_DIR AND EXISTS "${_homebrew_root}/opt/cppzmq/lib/cmake/cppzmq/cppzmqConfig.cmake")
-        set(cppzmq_DIR "${_homebrew_root}/opt/cppzmq/lib/cmake/cppzmq")
-    endif()
-    if(NOT LZO_DIR AND EXISTS "${_homebrew_root}/opt/lzo/lib/cmake/LZO/LZOConfig.cmake")
-        set(LZO_DIR "${_homebrew_root}/opt/lzo/lib/cmake/LZO")
-    endif()
-    if(NOT LZO_ROOT AND EXISTS "${_homebrew_root}/opt/lzo")
-        set(LZO_ROOT "${_homebrew_root}/opt/lzo")
-    endif()
-endif()
-
-if(APPLE AND NOT LZO_ROOT AND EXISTS "/usr/local/opt/lzo")
-    set(LZO_ROOT "/usr/local/opt/lzo")
-endif()
-
-find_package(ZeroMQ CONFIG REQUIRED)
-
-if(TARGET ZeroMQ::libzmq)
-    set(_ZEROMQ_TARGET ZeroMQ::libzmq)
-elseif(TARGET ZeroMQ::ZeroMQ)
-    set(_ZEROMQ_TARGET ZeroMQ::ZeroMQ)
-else()
-    message(FATAL_ERROR "ZeroMQ config did not define an imported target")
-endif()
-
-find_package(cppzmq CONFIG REQUIRED)
-if(TARGET cppzmq::cppzmq)
-    set(_CPPZMQ_TARGET cppzmq::cppzmq)
-else()
-    message(FATAL_ERROR "cppzmq config did not define the cppzmq::cppzmq target")
-endif()
-
-find_package(LZO REQUIRED)
-
+set(_ZEROMQ_TARGET "")
+set(_ZEROMQ_INCLUDE_HINTS "")
+set(_CPPZMQ_TARGET "")
+set(_CPPZMQ_INCLUDE_HINTS "")
 set(_LZO_TARGET "")
-set(_LZO_NEEDS_INCLUDES OFF)
-if(TARGET LZO::lzo2)
-    set(_LZO_TARGET LZO::lzo2)
-elseif(DEFINED LZO_LIBRARIES)
-    set(_LZO_TARGET ${LZO_LIBRARIES})
-    set(_LZO_NEEDS_INCLUDES ON)
+set(_LZO_INCLUDE_HINTS "")
+
+if(APPLE)
+    set(_brew_prefixes "/opt/homebrew" "/usr/local")
+
+    foreach(_prefix IN LISTS _brew_prefixes)
+        if(NOT _zeromq_root AND EXISTS "${_prefix}/opt/zeromq")
+            set(_zeromq_root "${_prefix}/opt/zeromq")
+        endif()
+        if(NOT _cppzmq_root AND EXISTS "${_prefix}/opt/cppzmq")
+            set(_cppzmq_root "${_prefix}/opt/cppzmq")
+        endif()
+        if(NOT _lzo_root AND EXISTS "${_prefix}/opt/lzo")
+            set(_lzo_root "${_prefix}/opt/lzo")
+        endif()
+    endforeach()
+
+    if(_zeromq_root AND EXISTS "${_zeromq_root}/lib/libzmq.dylib")
+        set(_ZEROMQ_TARGET "${_zeromq_root}/lib/libzmq.dylib")
+        if(EXISTS "${_zeromq_root}/include")
+            list(APPEND _ZEROMQ_INCLUDE_HINTS "${_zeromq_root}/include")
+        endif()
+    endif()
+
+    if(_cppzmq_root AND EXISTS "${_cppzmq_root}/include")
+        list(APPEND _CPPZMQ_INCLUDE_HINTS "${_cppzmq_root}/include")
+    endif()
+
+    if(_lzo_root AND EXISTS "${_lzo_root}/lib/liblzo2.dylib")
+        set(_LZO_TARGET "${_lzo_root}/lib/liblzo2.dylib")
+        if(EXISTS "${_lzo_root}/include")
+            list(APPEND _LZO_INCLUDE_HINTS "${_lzo_root}/include")
+        endif()
+    endif()
+
+    if(NOT _ZEROMQ_TARGET)
+        message(FATAL_ERROR "ZeroMQ not found in Homebrew. Install it with 'brew install zeromq'.")
+    endif()
+    if(NOT _CPPZMQ_INCLUDE_HINTS)
+        message(FATAL_ERROR "cppzmq headers not found in Homebrew. Install them with 'brew install cppzmq'.")
+    endif()
+    if(NOT _LZO_TARGET)
+        message(FATAL_ERROR "LZO not found in Homebrew. Install it with 'brew install lzo'.")
+    endif()
+else()
+    find_package(ZeroMQ CONFIG REQUIRED)
+    if(TARGET ZeroMQ::libzmq)
+        set(_ZEROMQ_TARGET ZeroMQ::libzmq)
+    elseif(TARGET ZeroMQ::ZeroMQ)
+        set(_ZEROMQ_TARGET ZeroMQ::ZeroMQ)
+    else()
+        message(FATAL_ERROR "ZeroMQ config did not define an imported target")
+    endif()
+
+    find_package(cppzmq CONFIG REQUIRED)
+    if(TARGET cppzmq::cppzmq)
+        set(_CPPZMQ_TARGET cppzmq::cppzmq)
+    else()
+        message(FATAL_ERROR "cppzmq config did not define the cppzmq::cppzmq target")
+    endif()
+
+    find_package(LZO REQUIRED)
+    if(TARGET LZO::lzo2)
+        set(_LZO_TARGET LZO::lzo2)
+    elseif(DEFINED LZO_LIBRARIES)
+        set(_LZO_TARGET ${LZO_LIBRARIES})
+        if(DEFINED LZO_INCLUDE_DIRS)
+            list(APPEND _LZO_INCLUDE_HINTS ${LZO_INCLUDE_DIRS})
+        elseif(DEFINED LZO_INCLUDE_DIR)
+            list(APPEND _LZO_INCLUDE_HINTS ${LZO_INCLUDE_DIR})
+        endif()
+    endif()
 endif()
 
 if(NOT _LZO_TARGET)
-    message(FATAL_ERROR "LZO not found. Install LZO or provide LZO_DIR.")
-endif()
-
-set(_LZO_INCLUDE_PATH "")
-if(DEFINED LZO_INCLUDE_DIRS)
-    set(_LZO_INCLUDE_PATH ${LZO_INCLUDE_DIRS})
-elseif(DEFINED LZO_INCLUDE_DIR)
-    set(_LZO_INCLUDE_PATH ${LZO_INCLUDE_DIR})
+    message(FATAL_ERROR "LZO not found. Install LZO or provide the library path explicitly.")
 endif()
 
 set(SOURCES
@@ -83,6 +101,14 @@ target_include_directories(revyv
         "${PROJECT_SOURCE_DIR}/include"
 )
 
+if(_ZEROMQ_INCLUDE_HINTS)
+    target_include_directories(revyv PUBLIC ${_ZEROMQ_INCLUDE_HINTS})
+endif()
+
+if(_CPPZMQ_INCLUDE_HINTS)
+    target_include_directories(revyv PUBLIC ${_CPPZMQ_INCLUDE_HINTS})
+endif()
+
 target_link_libraries(revyv
     PUBLIC
         ${_CPPZMQ_TARGET}
@@ -91,8 +117,8 @@ target_link_libraries(revyv
         ${_LZO_TARGET}
 )
 
-if(_LZO_NEEDS_INCLUDES AND _LZO_INCLUDE_PATH)
-    target_include_directories(revyv PUBLIC ${_LZO_INCLUDE_PATH})
+if(_LZO_INCLUDE_HINTS)
+    target_include_directories(revyv PUBLIC ${_LZO_INCLUDE_HINTS})
 endif()
 
 set_property(TARGET revyv PROPERTY CXX_STANDARD 17)
