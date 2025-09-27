@@ -4,6 +4,7 @@
 #include "include/cef_render_handler.h"
 #include "render_handler.h"
 #include <argh.h>
+#include <filesystem>
 #include <iostream>
 #include <revyv/revyv.h>
 #include <thread>
@@ -49,6 +50,28 @@ int main(int argc, char* argv[])
 
     CefSettings settings;
     settings.windowless_rendering_enabled = true;
+
+    namespace fs = std::filesystem;
+    fs::path exe_path;
+    try {
+        exe_path = fs::canonical(fs::absolute(argv[0]));
+    }
+    catch (const fs::filesystem_error&) {
+        exe_path = fs::absolute(argv[0]);
+    }
+
+    fs::path resources_dir;
+    fs::path locales_dir;
+#if defined(OS_MAC) || defined(__APPLE__)
+    resources_dir = exe_path.parent_path() / "Resources";
+    locales_dir = resources_dir / "locales";
+#else
+    resources_dir = exe_path.parent_path();
+    locales_dir = resources_dir / "locales";
+#endif
+
+    CefString(&settings.resources_dir_path) = resources_dir.string();
+    CefString(&settings.locales_dir_path) = locales_dir.string();
     if (!CefInitialize(args, settings, nullptr, nullptr)) {
         return -1;
     }

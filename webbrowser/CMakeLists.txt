@@ -323,6 +323,13 @@ if (APPLE)
             COMMAND ${CMAKE_COMMAND} -E copy_directory
                     "${_cef_framework_dir}"
                     "$<TARGET_FILE_DIR:webbrowser>/../Frameworks/Chromium Embedded Framework.framework")
+
+    add_custom_command(TARGET webbrowser POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E make_directory
+                    "$<TARGET_FILE_DIR:webbrowser>/Resources"
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+                    "${CEF_RESOURCE_DIR}"
+                    "$<TARGET_FILE_DIR:webbrowser>/Resources")
 endif ()
 
 if (NOT APPLE)
