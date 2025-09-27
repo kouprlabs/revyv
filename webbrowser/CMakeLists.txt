@@ -199,12 +199,25 @@ if (DEFINED CEF_INCLUDE_DIRS)
     list(APPEND _CEF_INCLUDE_HINTS ${CEF_INCLUDE_DIRS})
 elseif (DEFINED CEF_INCLUDE_DIR)
     list(APPEND _CEF_INCLUDE_HINTS ${CEF_INCLUDE_DIR})
-elseif (DEFINED CEF_ROOT AND EXISTS "${CEF_ROOT}/include")
-    list(APPEND _CEF_INCLUDE_HINTS "${CEF_ROOT}/include")
 endif ()
 
-if (DEFINED CEF_ROOT AND EXISTS "${CEF_ROOT}")
-    list(APPEND _CEF_INCLUDE_HINTS "${CEF_ROOT}")
+set(_cef_header_candidates "")
+
+if (DEFINED CEF_ROOT)
+    list(APPEND _cef_header_candidates
+            "${CEF_ROOT}"
+            "${CEF_ROOT}/include"
+            "${CEF_BINARY_DIR}/include")
+endif ()
+
+foreach(_candidate IN LISTS _cef_header_candidates)
+    if (_candidate AND EXISTS "${_candidate}")
+        list(APPEND _CEF_INCLUDE_HINTS "${_candidate}")
+    endif ()
+endforeach ()
+
+if (_CEF_INCLUDE_HINTS)
+    list(REMOVE_DUPLICATES _CEF_INCLUDE_HINTS)
 endif ()
 
 set(_CAIRO_TARGET "")
@@ -394,6 +407,19 @@ if (APPLE)
 
     if (NOT _cef_debug_resources)
         set(_cef_debug_resources "${_cef_release_resources}")
+    endif ()
+
+    foreach(_bundle_headers IN LISTS _cef_release_bundle _cef_debug_bundle)
+        if (_bundle_headers)
+            set(_bundle_headers_path "${_bundle_headers}/Headers")
+            if (EXISTS "${_bundle_headers_path}")
+                list(APPEND _CEF_INCLUDE_HINTS "${_bundle_headers_path}")
+            endif ()
+        endif ()
+    endforeach ()
+
+    if (_CEF_INCLUDE_HINTS)
+        list(REMOVE_DUPLICATES _CEF_INCLUDE_HINTS)
     endif ()
 
     set(_cef_release_libraries_bundle "")
