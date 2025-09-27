@@ -1,5 +1,10 @@
 project(compositor)
 
+# Ensure ZeroMQ and cppzmq are available so the compositor target inherits the
+# correct include directories and link libraries on all platforms.
+include("${CMAKE_SOURCE_DIR}/cmake/RevyvZeroMQ.cmake")
+revyv_require_zmq()
+
 # Discover SDL2 so platform-specific include directories and link flags are
 # propagated to the compositor target. Prefer the modern CMake package on
 # systems such as Homebrew and fall back to pkg-config if only a .pc file is
@@ -57,7 +62,8 @@ target_include_directories(compositor
 target_link_libraries(compositor
     PRIVATE
         SDL2::SDL2
-        zmq
+        ZeroMQ::libzmq
+        cppzmq::cppzmq
         pthread
         lzo2
 )

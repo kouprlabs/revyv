@@ -1,6 +1,9 @@
 project(asl)
 
-include_directories("${PROJECT_SOURCE_DIR}/include")
+# Ensure ZeroMQ and cppzmq discovery mirrors the compositor target so the
+# shared library exposes the correct usage requirements to dependants.
+include("${CMAKE_SOURCE_DIR}/cmake/RevyvZeroMQ.cmake")
+revyv_require_zmq()
 
 set(SOURCES
         src/capi.cpp
@@ -15,7 +18,18 @@ set(HEADERS
         include/revyv/scancodes.h)
 add_library(revyv SHARED ${SOURCES} ${HEADERS})
 
-target_link_libraries(revyv zmq lzo2)
+target_include_directories(revyv
+    PUBLIC
+        "${PROJECT_SOURCE_DIR}/include"
+)
+
+target_link_libraries(revyv
+    PUBLIC
+        cppzmq::cppzmq
+        ZeroMQ::libzmq
+    PRIVATE
+        lzo2
+)
 
 set_property(TARGET revyv PROPERTY CXX_STANDARD 17)
 
