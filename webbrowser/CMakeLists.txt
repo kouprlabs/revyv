@@ -12,14 +12,24 @@ set_property(GLOBAL PROPERTY OS_FOLDERS ON)
 # Specify the CEF distribution version
 set(CEF_VERSION "106.1.1+g5891c70+chromium-106.0.5249.119")
 
-if ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "arm")
-    set(CEF_PLATFORM "linuxarm")
-elseif ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "arm64")
-    set(CEF_PLATFORM "linuxarm64")
-elseif (CMAKE_SIZEOF_VOID_P MATCHES 8)
-    set(CEF_PLATFORM "linux64")
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    if ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "arm")
+        set(CEF_PLATFORM "linuxarm")
+    elseif ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "arm64")
+        set(CEF_PLATFORM "linuxarm64")
+    elseif (CMAKE_SIZEOF_VOID_P MATCHES 8)
+        set(CEF_PLATFORM "linux64")
+    else ()
+        message(FATAL_ERROR "Linux x86 32-bit builds are discontinued.")
+    endif ()
+elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    if ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "arm64")
+        set(CEF_PLATFORM "macosarm64")
+    else ()
+        set(CEF_PLATFORM "macosx64")
+    endif ()
 else ()
-    message(FATAL_ERROR "Linux x86 32-bit builds are discontinued.")
+    message(FATAL_ERROR "Unsupported host platform: ${CMAKE_SYSTEM_NAME}")
 endif ()
 
 # Add this project's cmake/ directory to the module path
@@ -63,9 +73,20 @@ message(STATUS "Using Python: ${PYTHON_EXECUTABLE}")
 # Clang-format configuration
 #
 
-set(GS_PLATFORM "linux*")
-set(GS_HASHPATH "linux64/clang-format.sha1")
-set(GS_OUTPATH "linux64/clang-format")
+if (APPLE)
+    set(GS_PLATFORM "mac")
+    if ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "arm64")
+        set(GS_HASHPATH "mac/clang-format.arm64.sha1")
+        set(GS_OUTPATH "mac/clang-format.arm64")
+    else ()
+        set(GS_HASHPATH "mac/clang-format.x64.sha1")
+        set(GS_OUTPATH "mac/clang-format.x64")
+    endif ()
+else ()
+    set(GS_PLATFORM "linux*")
+    set(GS_HASHPATH "linux64/clang-format.sha1")
+    set(GS_OUTPATH "linux64/clang-format")
+endif ()
 
 message(STATUS "Downloading clang-format from Google Storage...")
 execute_process(
@@ -115,7 +136,11 @@ macro(SET_EXAMPLE_EXECUTABLE_TARGET_PROPERTIES target)
     SET_EXAMPLE_PROPERTIES(${target})
 
     # Set rpath so that libraries can be placed next to the executable.
-    set_target_properties(${target} PROPERTIES INSTALL_RPATH "$ORIGIN")
+    if (APPLE)
+        set_target_properties(${target} PROPERTIES INSTALL_RPATH "@loader_path")
+    else ()
+        set_target_properties(${target} PROPERTIES INSTALL_RPATH "$ORIGIN")
+    endif ()
     set_target_properties(${target} PROPERTIES BUILD_WITH_INSTALL_RPATH TRUE)
 endmacro()
 
@@ -144,8 +169,10 @@ target_link_libraries(webbrowser libcef_lib libcef_dll_wrapper ${CEF_STANDARD_LI
 COPY_FILES("webbrowser" "${CEF_BINARY_FILES}" "${CEF_BINARY_DIR}" "${CMAKE_CURRENT_BINARY_DIR}")
 COPY_FILES("webbrowser" "${CEF_RESOURCE_FILES}" "${CEF_RESOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}")
 
-# Output a message about setting SUID permissions on the chrome-sandbox target
-SET_LINUX_SUID_PERMISSIONS("webbrowser" "${CMAKE_CURRENT_BINARY_DIR}/chrome-sandbox")
+if (NOT APPLE)
+    # Output a message about setting SUID permissions on the chrome-sandbox target
+    SET_LINUX_SUID_PERMISSIONS("webbrowser" "${CMAKE_CURRENT_BINARY_DIR}/chrome-sandbox")
+endif ()
 
 # Display configuration settings.
 PRINT_CEF_CONFIG()
