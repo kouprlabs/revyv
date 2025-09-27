@@ -132,7 +132,7 @@ public:
 
     [[nodiscard]] uint64_t get_data_size() const { return _payload.field5; }
 
-    [[nodiscard]] int get_shared_memory_id() const { return _payload.field6; }
+    [[nodiscard]] int get_shared_memory_id() const { return static_cast<int>(_payload.field6); }
 };
 
 class WindowUpdatePixelsPayload : public ListenerBasePayload {
@@ -179,7 +179,7 @@ public:
 
     [[nodiscard]] uint64_t get_compressed_size() const { return _payload.field6; }
 
-    [[nodiscard]] int get_shared_memory_id() const { return _payload.field7; }
+    [[nodiscard]] int get_shared_memory_id() const { return static_cast<int>(_payload.field7); }
 };
 
 class WindowResizePayload : public ListenerBasePayload {
@@ -210,7 +210,7 @@ public:
 
     [[nodiscard]] uint64_t get_data_size() const { return _payload.field5; }
 
-    [[nodiscard]] int get_shared_memory_id() const { return _payload.field6; }
+    [[nodiscard]] int get_shared_memory_id() const { return static_cast<int>(_payload.field6); }
 };
 
 class WindowSetVisibilityPayload : public ListenerBasePayload {

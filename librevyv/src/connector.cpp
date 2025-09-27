@@ -41,11 +41,14 @@ Connector::Connector()
 
 Connector::~Connector() = default;
 
-uint32_t Connector::window_create(unsigned char* data, size_t size, double x, double y, double width, double height, WindowRasterType raster_type)
+uint32_t Connector::window_create(unsigned char* data, uint64_t size, double x, double y, double width, double height, WindowRasterType raster_type)
 {
     Window w {};
-    w.id = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() + getpid();
-    w.shared_memory_id = shmget(IPC_PRIVATE, size, IPC_CREAT | IPC_EXCL | S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
+    const auto timestamp_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch())
+                                  .count();
+    w.id = static_cast<uint32_t>(timestamp_ms + getpid());
+    w.shared_memory_id = shmget(IPC_PRIVATE, static_cast<size_t>(size), IPC_CREAT | IPC_EXCL | S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
     w.shared_memory = (unsigned char*)shmat(w.shared_memory_id, 0, 0);
     _windows[w.id] = w;
 
@@ -55,7 +58,7 @@ uint32_t Connector::window_create(unsigned char* data, size_t size, double x, do
     return w.id;
 }
 
-void Connector::window_update_pixels(uint32_t window_id, unsigned char* data, size_t size, double x, double y, double width, double height)
+void Connector::window_update_pixels(uint32_t window_id, unsigned char* data, uint64_t size, double x, double y, double width, double height)
 {
     auto w = _windows[window_id];
     try {
