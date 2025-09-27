@@ -44,6 +44,25 @@ function(DownloadCEF platform version download_dir)
     endif ()
 endfunction()
 
+function(_cef_get_helper_src dest pair_list result_var)
+    set(_result "")
+    foreach(_pair IN LISTS ${pair_list})
+        if(_pair)
+            string(REPLACE "|" ";" _parts "${_pair}")
+            list(LENGTH _parts _len)
+            if(_len GREATER 1)
+                list(GET _parts 1 _name)
+                if(_name STREQUAL "${dest}")
+                    list(GET _parts 0 _src)
+                    set(_result "${_src}")
+                    break()
+                endif()
+            endif()
+        endif()
+    endforeach()
+    set(${result_var} "${_result}" PARENT_SCOPE)
+endfunction()
+
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
     if ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "arm")
         set(CEF_PLATFORM "linuxarm")
@@ -364,6 +383,67 @@ if (APPLE)
         set(_cef_debug_resources "${_cef_release_resources}")
     endif ()
 
+    # Locate the helper app bundles shipped with CEF so they can be staged next
+    # to the executable and renamed to match our target name.
+    set(_cef_release_helper_pairs "")
+    set(_cef_debug_helper_pairs "")
+
+    set(_cef_helper_search_roots
+            "${_cef_probe_root}"
+            "${_cef_probe_root}/Release"
+            "${_cef_probe_root}/Debug")
+    if (NOT _cef_probe_root_parent STREQUAL "${_cef_probe_root}")
+        list(APPEND _cef_helper_search_roots
+                "${_cef_probe_root_parent}"
+                "${_cef_probe_root_parent}/Release"
+                "${_cef_probe_root_parent}/Debug")
+    endif ()
+
+    foreach(_root IN LISTS _cef_helper_search_roots)
+        file(GLOB _helpers "${_root}/* Helper*.app")
+        foreach(_helper IN LISTS _helpers)
+            if (IS_DIRECTORY "${_helper}")
+                get_filename_component(_helper_name "${_helper}" NAME)
+                string(REGEX REPLACE "^[^ ]+" "${PROJECT_NAME}" _dest_name "${_helper_name}")
+                if (_helper MATCHES "/Debug/")
+                    list(APPEND _cef_debug_helper_pairs "${_helper}|${_dest_name}")
+                else ()
+                    list(APPEND _cef_release_helper_pairs "${_helper}|${_dest_name}")
+                endif ()
+            endif ()
+        endforeach ()
+    endforeach ()
+
+    if (NOT _cef_release_helper_pairs)
+        message(FATAL_ERROR
+                "CEF helper applications not found in ${_cef_probe_root}. "
+                "Verify that the CEF archive extracted correctly.")
+    endif ()
+
+    if (NOT _cef_debug_helper_pairs)
+        set(_cef_debug_helper_pairs "${_cef_release_helper_pairs}")
+    endif ()
+
+    list(REMOVE_DUPLICATES _cef_release_helper_pairs)
+    list(REMOVE_DUPLICATES _cef_debug_helper_pairs)
+
+    set(_cef_helper_destinations "")
+    foreach(_pair IN LISTS _cef_release_helper_pairs _cef_debug_helper_pairs)
+        if (_pair)
+            string(REPLACE "|" ";" _parts "${_pair}")
+            list(LENGTH _parts _len)
+            if (_len GREATER 1)
+                list(GET _parts 1 _dest_name)
+                list(APPEND _cef_helper_destinations "${_dest_name}")
+            endif ()
+        endif ()
+    endforeach ()
+    list(REMOVE_DUPLICATES _cef_helper_destinations)
+
+    if (NOT _cef_helper_destinations)
+        message(FATAL_ERROR "Failed to determine CEF helper applications to stage.")
+    endif ()
+
     # The CEF helpers populate CEF_LIB_{DEBUG,RELEASE} as cache entries.  Force
     # both configs to use the discovered framework path so the logical target
     # resolves to an existing binary regardless of the selected build
@@ -405,6 +485,32 @@ if (APPLE)
             COMMAND ${CMAKE_COMMAND} -E copy_directory
                     "$<IF:$<CONFIG:Debug>,${_cef_debug_resources},${_cef_release_resources}>"
                     "$<TARGET_FILE_DIR:webbrowser>/Resources")
+
+    foreach(_dest_name IN LISTS _cef_helper_destinations)
+        _cef_get_helper_src("${_dest_name}" _cef_release_helper_pairs _cef_release_helper_src)
+        _cef_get_helper_src("${_dest_name}" _cef_debug_helper_pairs _cef_debug_helper_src)
+
+        if (NOT _cef_release_helper_src)
+            message(FATAL_ERROR "No release helper found matching ${_dest_name}.")
+        endif ()
+
+        if (NOT _cef_debug_helper_src)
+            set(_cef_debug_helper_src "${_cef_release_helper_src}")
+        endif ()
+
+        get_filename_component(_cef_release_helper_we "${_cef_release_helper_src}" NAME_WE)
+        get_filename_component(_cef_dest_helper_we "${_dest_name}" NAME_WE)
+
+        add_custom_command(TARGET webbrowser POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E remove_directory "$<TARGET_FILE_DIR:webbrowser>/../Frameworks/${_dest_name}"
+                COMMAND ${CMAKE_COMMAND} -E copy_directory
+                        "$<IF:$<CONFIG:Debug>,${_cef_debug_helper_src},${_cef_release_helper_src}>"
+                        "$<TARGET_FILE_DIR:webbrowser>/../Frameworks/${_dest_name}>"
+                COMMAND ${CMAKE_COMMAND} -E rename
+                        "$<TARGET_FILE_DIR:webbrowser>/../Frameworks/${_dest_name}/Contents/MacOS/${_cef_release_helper_we}"
+                        "$<TARGET_FILE_DIR:webbrowser>/../Frameworks/${_dest_name}/Contents/MacOS/${_cef_dest_helper_we}"
+                COMMAND /usr/bin/env bash -c "if [ -x /usr/libexec/PlistBuddy ]; then /usr/libexec/PlistBuddy -c \"Set :CFBundleExecutable ${_cef_dest_helper_we}\" \"$<TARGET_FILE_DIR:webbrowser>/../Frameworks/${_dest_name}/Contents/Info.plist\" && /usr/libexec/PlistBuddy -c \"Set :CFBundleName ${_cef_dest_helper_we}\" \"$<TARGET_FILE_DIR:webbrowser>/../Frameworks/${_dest_name}/Contents/Info.plist\"; fi")
+    endforeach ()
 endif ()
 
 if (NOT APPLE)
