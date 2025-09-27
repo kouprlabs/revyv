@@ -194,6 +194,15 @@ endif ()
 # Allow includes relative to the current source directory
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
+set(_CEF_INCLUDE_HINTS "")
+if (DEFINED CEF_INCLUDE_DIRS)
+    list(APPEND _CEF_INCLUDE_HINTS ${CEF_INCLUDE_DIRS})
+elseif (DEFINED CEF_INCLUDE_DIR)
+    list(APPEND _CEF_INCLUDE_HINTS ${CEF_INCLUDE_DIR})
+elseif (DEFINED CEF_ROOT AND EXISTS "${CEF_ROOT}/include")
+    list(APPEND _CEF_INCLUDE_HINTS "${CEF_ROOT}/include")
+endif ()
+
 set(_CAIRO_TARGET "")
 set(_CAIRO_INCLUDE_HINTS "")
 
@@ -485,6 +494,10 @@ target_link_libraries(webbrowser libcef_lib libcef_dll_wrapper ${CEF_STANDARD_LI
 
 if (_CAIRO_INCLUDE_HINTS)
     target_include_directories(webbrowser PRIVATE ${_CAIRO_INCLUDE_HINTS})
+endif ()
+
+if (_CEF_INCLUDE_HINTS)
+    target_include_directories(webbrowser PRIVATE ${_CEF_INCLUDE_HINTS})
 endif ()
 
 # Stage the shared librevyv runtime next to the executable so the
