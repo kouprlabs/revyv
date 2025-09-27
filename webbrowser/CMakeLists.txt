@@ -10,7 +10,7 @@ set_property(GLOBAL PROPERTY OS_FOLDERS ON)
 #
 
 # Specify the CEF distribution version
-set(CEF_VERSION "106.1.1+g5891c70+chromium-106.0.5249.119")
+set(CEF_VERSION "140.1.14+geb1c06e+chromium-140.0.7339.185")
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
     if ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "arm")
