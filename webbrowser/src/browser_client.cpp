@@ -1,5 +1,6 @@
 #include "browser_client.h"
 #include "include/cef_app.h"
+#include "include/capi/cef_urlrequest_capi.h"
 
 BrowserClient::BrowserClient(RenderHandler* renderHandler)
     : _render_handler(renderHandler)
@@ -40,4 +41,18 @@ bool BrowserClient::OnCertificateError(CefRefPtr<CefBrowser> browser,
     // spurious certificate parsing failures for some well known sites and we
     // want to keep loading the page regardless.
     return true;
+}
+
+CefResourceRequestHandler::ReturnValue BrowserClient::OnBeforeResourceLoad(
+    CefRefPtr<CefBrowser> browser,
+    CefRefPtr<CefFrame> frame,
+    CefRefPtr<CefRequest> request,
+    CefRefPtr<CefCallback> callback)
+{
+    if (request.get()) {
+        const int current_flags = request->GetFlags();
+        request->SetFlags(current_flags | UR_FLAG_IGNORE_CERTIFICATE_ERRORS);
+    }
+
+    return RV_CONTINUE;
 }

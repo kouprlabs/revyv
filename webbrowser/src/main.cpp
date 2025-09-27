@@ -54,6 +54,7 @@ public:
         append_switch("allow-insecure-localhost");
         append_switch("allow-running-insecure-content");
         append_switch("test-type");
+        append_switch("use-chrome-root-store");
 
 #if defined(OS_MAC) || defined(__APPLE__)
         // Recent macOS releases ship a trust store that can return malformed
