@@ -282,6 +282,10 @@ if (APPLE)
         set(_cef_debug_framework "${_cef_release_framework}")
     endif ()
 
+    # Record the containing framework bundle so we can stage it alongside the
+    # built executable after linking.
+    get_filename_component(_cef_framework_dir "${_cef_release_framework}" DIRECTORY)
+
     # The CEF helpers populate CEF_LIB_{DEBUG,RELEASE} as cache entries.  Force
     # both configs to use the discovered framework path so the logical target
     # resolves to an existing binary regardless of the selected build
@@ -303,6 +307,15 @@ endif ()
 # Copy binary and resource files to the target output directory
 COPY_FILES("webbrowser" "${CEF_BINARY_FILES}" "${CEF_BINARY_DIR}" "${CMAKE_CURRENT_BINARY_DIR}")
 COPY_FILES("webbrowser" "${CEF_RESOURCE_FILES}" "${CEF_RESOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}")
+
+if (APPLE)
+    add_custom_command(TARGET webbrowser POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E make_directory
+                    "$<TARGET_FILE_DIR:webbrowser>/../Frameworks"
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+                    "${_cef_framework_dir}"
+                    "$<TARGET_FILE_DIR:webbrowser>/../Frameworks/Chromium Embedded Framework.framework")
+endif ()
 
 if (NOT APPLE)
     # Output a message about setting SUID permissions on the chrome-sandbox target
