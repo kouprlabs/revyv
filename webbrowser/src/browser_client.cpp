@@ -32,7 +32,7 @@ bool BrowserClient::OnCertificateError(CefRefPtr<CefBrowser> browser,
     CefRefPtr<CefCallback> callback)
 {
     if (callback.get()) {
-        callback->Continue(true);
+        callback->Continue();
         return true;
     }
 
