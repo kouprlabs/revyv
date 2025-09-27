@@ -135,6 +135,16 @@ endif ()
 # Include the libcef_dll_wrapper target (executes libcef_dll/CMakeLists.txt)
 add_subdirectory(${CEF_LIBCEF_DLL_WRAPPER_PATH} libcef_dll_wrapper)
 
+if (APPLE)
+    # The bundled CEF SDK is built with a macOS 12.0 deployment target.  When
+    # newer versions of Xcode inject a higher `-target` flag (e.g. macOS 26)
+    # during our build the compiler treats CEF's own `-mmacosx-version-min=12.0`
+    # argument as an override and fails due to `-Werror,-Woverriding-option`.
+    # Force the wrapper target to share CEF's deployment target so the flags
+    # agree and the build proceeds.
+    set_target_properties(libcef_dll_wrapper PROPERTIES MACOSX_DEPLOYMENT_TARGET "12.0")
+endif ()
+
 # Allow includes relative to the current source directory
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
