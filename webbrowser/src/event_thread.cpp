@@ -1,7 +1,7 @@
 #include "event_thread.h"
 #include "chromium_keycodes.h"
 #include "include/cef_app.h"
-#include "include/cef_browser_host.h"
+#include "include/cef_browser.h"
 #include "include/cef_render_handler.h"
 #include "include/cef_task.h"
 #include "include/wrapper/cef_closure_task.h"
