@@ -384,9 +384,13 @@ if (APPLE)
     endif ()
 
     # Locate the helper app bundles shipped with CEF so they can be staged next
-    # to the executable and renamed to match our target name.
+    # to the executable and renamed to match our target name.  Recent CEF
+    # releases (starting with 140) no longer ship prebuilt helpers in the
+    # binary distribution, so be prepared to run without them.
     set(_cef_release_helper_pairs "")
     set(_cef_debug_helper_pairs "")
+    set(_cef_helper_destinations "")
+    set(_cef_has_helpers TRUE)
 
     set(_cef_helper_search_roots
             "${_cef_probe_root}"
@@ -415,33 +419,37 @@ if (APPLE)
     endforeach ()
 
     if (NOT _cef_release_helper_pairs)
-        message(FATAL_ERROR
-                "CEF helper applications not found in ${_cef_probe_root}. "
-                "Verify that the CEF archive extracted correctly.")
-    endif ()
-
-    if (NOT _cef_debug_helper_pairs)
-        set(_cef_debug_helper_pairs "${_cef_release_helper_pairs}")
-    endif ()
-
-    list(REMOVE_DUPLICATES _cef_release_helper_pairs)
-    list(REMOVE_DUPLICATES _cef_debug_helper_pairs)
-
-    set(_cef_helper_destinations "")
-    foreach(_pair IN LISTS _cef_release_helper_pairs _cef_debug_helper_pairs)
-        if (_pair)
-            string(REPLACE "|" ";" _parts "${_pair}")
-            list(LENGTH _parts _len)
-            if (_len GREATER 1)
-                list(GET _parts 1 _dest_name)
-                list(APPEND _cef_helper_destinations "${_dest_name}")
-            endif ()
+        set(_cef_has_helpers FALSE)
+        message(WARNING
+                "CEF helper applications were not found in ${_cef_probe_root}. "
+                "macOS helper staging will be skipped. "
+                "Consider building helper bundles from the CEF samples if your "
+                "application requires them.")
+    else ()
+        if (NOT _cef_debug_helper_pairs)
+            set(_cef_debug_helper_pairs "${_cef_release_helper_pairs}")
         endif ()
-    endforeach ()
-    list(REMOVE_DUPLICATES _cef_helper_destinations)
 
-    if (NOT _cef_helper_destinations)
-        message(FATAL_ERROR "Failed to determine CEF helper applications to stage.")
+        list(REMOVE_DUPLICATES _cef_release_helper_pairs)
+        list(REMOVE_DUPLICATES _cef_debug_helper_pairs)
+
+        foreach(_pair IN LISTS _cef_release_helper_pairs _cef_debug_helper_pairs)
+            if (_pair)
+                string(REPLACE "|" ";" _parts "${_pair}")
+                list(LENGTH _parts _len)
+                if (_len GREATER 1)
+                    list(GET _parts 1 _dest_name)
+                    list(APPEND _cef_helper_destinations "${_dest_name}")
+                endif ()
+            endif ()
+        endforeach ()
+        list(REMOVE_DUPLICATES _cef_helper_destinations)
+
+        if (NOT _cef_helper_destinations)
+            set(_cef_has_helpers FALSE)
+            message(WARNING "Failed to determine CEF helper applications to stage. "
+                    "macOS helper staging will be skipped.")
+        endif ()
     endif ()
 
     # The CEF helpers populate CEF_LIB_{DEBUG,RELEASE} as cache entries.  Force
@@ -486,31 +494,33 @@ if (APPLE)
                     "$<IF:$<CONFIG:Debug>,${_cef_debug_resources},${_cef_release_resources}>"
                     "$<TARGET_FILE_DIR:webbrowser>/Resources")
 
-    foreach(_dest_name IN LISTS _cef_helper_destinations)
-        _cef_get_helper_src("${_dest_name}" _cef_release_helper_pairs _cef_release_helper_src)
-        _cef_get_helper_src("${_dest_name}" _cef_debug_helper_pairs _cef_debug_helper_src)
+    if (_cef_has_helpers)
+        foreach(_dest_name IN LISTS _cef_helper_destinations)
+            _cef_get_helper_src("${_dest_name}" _cef_release_helper_pairs _cef_release_helper_src)
+            _cef_get_helper_src("${_dest_name}" _cef_debug_helper_pairs _cef_debug_helper_src)
 
-        if (NOT _cef_release_helper_src)
-            message(FATAL_ERROR "No release helper found matching ${_dest_name}.")
-        endif ()
+            if (NOT _cef_release_helper_src)
+                message(FATAL_ERROR "No release helper found matching ${_dest_name}.")
+            endif ()
 
-        if (NOT _cef_debug_helper_src)
-            set(_cef_debug_helper_src "${_cef_release_helper_src}")
-        endif ()
+            if (NOT _cef_debug_helper_src)
+                set(_cef_debug_helper_src "${_cef_release_helper_src}")
+            endif ()
 
-        get_filename_component(_cef_release_helper_we "${_cef_release_helper_src}" NAME_WE)
-        get_filename_component(_cef_dest_helper_we "${_dest_name}" NAME_WE)
+            get_filename_component(_cef_release_helper_we "${_cef_release_helper_src}" NAME_WE)
+            get_filename_component(_cef_dest_helper_we "${_dest_name}" NAME_WE)
 
-        add_custom_command(TARGET webbrowser POST_BUILD
-                COMMAND ${CMAKE_COMMAND} -E remove_directory "$<TARGET_FILE_DIR:webbrowser>/../Frameworks/${_dest_name}"
-                COMMAND ${CMAKE_COMMAND} -E copy_directory
-                        "$<IF:$<CONFIG:Debug>,${_cef_debug_helper_src},${_cef_release_helper_src}>"
-                        "$<TARGET_FILE_DIR:webbrowser>/../Frameworks/${_dest_name}>"
-                COMMAND ${CMAKE_COMMAND} -E rename
-                        "$<TARGET_FILE_DIR:webbrowser>/../Frameworks/${_dest_name}/Contents/MacOS/${_cef_release_helper_we}"
-                        "$<TARGET_FILE_DIR:webbrowser>/../Frameworks/${_dest_name}/Contents/MacOS/${_cef_dest_helper_we}"
-                COMMAND /usr/bin/env bash -c "if [ -x /usr/libexec/PlistBuddy ]; then /usr/libexec/PlistBuddy -c \"Set :CFBundleExecutable ${_cef_dest_helper_we}\" \"$<TARGET_FILE_DIR:webbrowser>/../Frameworks/${_dest_name}/Contents/Info.plist\" && /usr/libexec/PlistBuddy -c \"Set :CFBundleName ${_cef_dest_helper_we}\" \"$<TARGET_FILE_DIR:webbrowser>/../Frameworks/${_dest_name}/Contents/Info.plist\"; fi")
-    endforeach ()
+            add_custom_command(TARGET webbrowser POST_BUILD
+                    COMMAND ${CMAKE_COMMAND} -E remove_directory "$<TARGET_FILE_DIR:webbrowser>/../Frameworks/${_dest_name}"
+                    COMMAND ${CMAKE_COMMAND} -E copy_directory
+                            "$<IF:$<CONFIG:Debug>,${_cef_debug_helper_src},${_cef_release_helper_src}>"
+                            "$<TARGET_FILE_DIR:webbrowser>/../Frameworks/${_dest_name}>"
+                    COMMAND ${CMAKE_COMMAND} -E rename
+                            "$<TARGET_FILE_DIR:webbrowser>/../Frameworks/${_dest_name}/Contents/MacOS/${_cef_release_helper_we}"
+                            "$<TARGET_FILE_DIR:webbrowser>/../Frameworks/${_dest_name}/Contents/MacOS/${_cef_dest_helper_we}"
+                    COMMAND /usr/bin/env bash -c "if [ -x /usr/libexec/PlistBuddy ]; then /usr/libexec/PlistBuddy -c \"Set :CFBundleExecutable ${_cef_dest_helper_we}\" \"$<TARGET_FILE_DIR:webbrowser>/../Frameworks/${_dest_name}/Contents/Info.plist\" && /usr/libexec/PlistBuddy -c \"Set :CFBundleName ${_cef_dest_helper_we}\" \"$<TARGET_FILE_DIR:webbrowser>/../Frameworks/${_dest_name}/Contents/Info.plist\"; fi")
+        endforeach ()
+    endif ()
 endif ()
 
 if (NOT APPLE)
