@@ -1,26 +1,40 @@
 project(asl)
 
 if(APPLE)
+    set(_homebrew_root "/opt/homebrew")
     list(APPEND CMAKE_PREFIX_PATH
-        "/opt/homebrew"
-        "/opt/homebrew/opt/zeromq"
-        "/opt/homebrew/opt/cppzmq"
-        "/opt/homebrew/opt/lzo"
+        "${_homebrew_root}"
+        "${_homebrew_root}/opt/zeromq"
+        "${_homebrew_root}/opt/cppzmq"
+        "${_homebrew_root}/opt/lzo"
     )
+    if(NOT ZeroMQ_DIR AND EXISTS "${_homebrew_root}/opt/zeromq/lib/cmake/ZeroMQ/ZeroMQConfig.cmake")
+        set(ZeroMQ_DIR "${_homebrew_root}/opt/zeromq/lib/cmake/ZeroMQ")
+    endif()
+    if(NOT cppzmq_DIR AND EXISTS "${_homebrew_root}/opt/cppzmq/lib/cmake/cppzmq/cppzmqConfig.cmake")
+        set(cppzmq_DIR "${_homebrew_root}/opt/cppzmq/lib/cmake/cppzmq")
+    endif()
+    if(NOT LZO_DIR AND EXISTS "${_homebrew_root}/opt/lzo/lib/cmake/LZO/LZOConfig.cmake")
+        set(LZO_DIR "${_homebrew_root}/opt/lzo/lib/cmake/LZO")
+    endif()
 endif()
 
-find_package(ZeroMQ REQUIRED)
+find_package(ZeroMQ CONFIG REQUIRED)
 
 if(TARGET ZeroMQ::libzmq)
     set(_ZEROMQ_TARGET ZeroMQ::libzmq)
 elseif(TARGET ZeroMQ::ZeroMQ)
     set(_ZEROMQ_TARGET ZeroMQ::ZeroMQ)
 else()
-    message(FATAL_ERROR "ZeroMQ package did not define an imported target.")
+    message(FATAL_ERROR "ZeroMQ config did not define an imported target")
 endif()
 
 find_package(cppzmq CONFIG REQUIRED)
-set(_CPPZMQ_TARGET cppzmq::cppzmq)
+if(TARGET cppzmq::cppzmq)
+    set(_CPPZMQ_TARGET cppzmq::cppzmq)
+else()
+    message(FATAL_ERROR "cppzmq config did not define the cppzmq::cppzmq target")
+endif()
 
 find_package(LZO REQUIRED)
 
