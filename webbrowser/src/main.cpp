@@ -2,6 +2,7 @@
 #include "event_thread.h"
 #include "include/cef_app.h"
 #include "include/cef_render_handler.h"
+#include "include/wrapper/cef_library_loader.h"
 #include "render_handler.h"
 #include <argh.h>
 #include <iostream>
@@ -13,6 +14,12 @@ void* revyv = nullptr;
 int main(int argc, char* argv[])
 {
     CefMainArgs args(argc, argv);
+#if defined(__APPLE__)
+    CefScopedLibraryLoader library_loader;
+    if (!library_loader.LoadInMain()) {
+        return -1;
+    }
+#endif
     argh::parser cmdl({ "-f", "--frame", "-u", "--url" });
 
     cmdl.parse(argc, argv);
