@@ -3,6 +3,7 @@
 
 #include "socket.h"
 #include <cerrno>
+#include <cstddef>
 #include <compositor/types.h>
 #include <cstring>
 #include <iostream>
@@ -28,9 +29,9 @@ public:
 
     ~Connector();
 
-    uint32_t window_create(unsigned char* data, uint64_t size, double x, double y, double width, double height, WindowRasterType raster_type);
+    uint32_t window_create(unsigned char* data, size_t size, double x, double y, double width, double height, WindowRasterType raster_type);
 
-    void window_update_pixels(uint32_t window_id, unsigned char* data, uint64_t size, double x, double y, double width, double height);
+    void window_update_pixels(uint32_t window_id, unsigned char* data, size_t size, double x, double y, double width, double height);
 
     void window_resize(uint32_t window_id, unsigned char* data, uint64_t size, double width, double height);
 
