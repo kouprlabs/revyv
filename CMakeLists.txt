@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.2.2)
+cmake_minimum_required(VERSION 3.16)
 project(revyv)
 
 include_directories("${PROJECT_SOURCE_DIR}/librevyv/include")
