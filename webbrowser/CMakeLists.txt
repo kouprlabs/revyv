@@ -47,6 +47,16 @@ else ()
     message(FATAL_ERROR "Unsupported platform: ${CMAKE_SYSTEM_NAME}")
 endif ()
 
+if (OS_MACOSX)
+    set(CMAKE_OSX_ARCHITECTURES "${PROJECT_ARCH}" CACHE STRING
+            "Target architecture for macOS builds" FORCE)
+    # CEF 140 binaries are built against macOS 12 and must be linked with the
+    # same minimum deployment target to avoid toolchain mismatches when
+    # compiling the helper libraries.
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "12.0" CACHE STRING
+            "Minimum macOS version to target" FORCE)
+endif ()
+
 # Add this project's cmake/ directory to the module path
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -184,8 +194,7 @@ APPEND_PLATFORM_SOURCES(WEBBROWSER_HELPER_SRCS)
 set(WEBBROWSER_RESOURCES_SRCS)
 set(WEBBROWSER_RESOURCES_SRCS_MAC
         mac/English.lproj/InfoPlist.strings
-        mac/English.lproj/MainMenu.xib
-        mac/shared.icns)
+        mac/English.lproj/MainMenu.xib)
 APPEND_PLATFORM_SOURCES(WEBBROWSER_RESOURCES_SRCS)
 
 if (OS_MAC)
