@@ -50,11 +50,21 @@ endif ()
 if (OS_MACOSX)
     set(CMAKE_OSX_ARCHITECTURES "${PROJECT_ARCH}" CACHE STRING
             "Target architecture for macOS builds" FORCE)
-    # CEF 140 binaries are built against macOS 12 and must be linked with the
-    # same minimum deployment target to avoid toolchain mismatches when
-    # compiling the helper libraries.
-    set(CMAKE_OSX_DEPLOYMENT_TARGET "12.0" CACHE STRING
-            "Minimum macOS version to target" FORCE)
+
+    # Allow the CEF toolchain (or the user) to dictate the deployment target.
+    # Hard-coding a minimum version here results in clang emitting
+    # "overriding '-mmacosx-version-min'" errors when the downloaded CEF
+    # binaries specify a different `-target` triple.  The official CEF CMake
+    # files leave the deployment target unset for this reason, so we follow the
+    # same approach and only touch the cache entry when a value was provided by
+    # the caller.
+    if (DEFINED CMAKE_OSX_DEPLOYMENT_TARGET AND
+            NOT "${CMAKE_OSX_DEPLOYMENT_TARGET}" STREQUAL "")
+        set(CMAKE_OSX_DEPLOYMENT_TARGET "${CMAKE_OSX_DEPLOYMENT_TARGET}" CACHE STRING
+                "Minimum macOS version to target" FORCE)
+    else ()
+        unset(CMAKE_OSX_DEPLOYMENT_TARGET CACHE)
+    endif ()
 endif ()
 
 # Add this project's cmake/ directory to the module path
