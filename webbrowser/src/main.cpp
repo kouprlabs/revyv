@@ -12,88 +12,6 @@
 #include <revyv/revyv.h>
 #include <thread>
 
-#if defined(OS_MAC) || defined(__APPLE__)
-#include <Security/Security.h>
-#include <array>
-#endif
-
-#if defined(OS_MAC) || defined(__APPLE__)
-namespace {
-
-void RestrictKeychainSearchListToSystemStores()
-{
-    CFArrayRef original_list = nullptr;
-    if (SecKeychainCopySearchList(&original_list) != errSecSuccess || !original_list)
-        return;
-
-    CFMutableArrayRef filtered = CFArrayCreateMutable(kCFAllocatorDefault, 0, &kCFTypeArrayCallBacks);
-    if (!filtered) {
-        CFRelease(original_list);
-        return;
-    }
-
-    const std::array allowed_names = {
-        CFSTR("System.keychain"),
-        CFSTR("SystemRootCertificates.keychain"),
-        CFSTR("SystemRootCertificates.keychain-db"),
-        CFSTR("System.keychain-db"),
-    };
-
-    bool has_system_keychain = false;
-    bool has_root_keychain = false;
-
-    const CFIndex count = CFArrayGetCount(original_list);
-    for (CFIndex index = 0; index < count; ++index) {
-        auto keychain_ref = static_cast<SecKeychainRef>(const_cast<void*>(CFArrayGetValueAtIndex(original_list, index)));
-        if (!keychain_ref)
-            continue;
-
-        CFStringRef name = nullptr;
-        if (SecKeychainCopyName(keychain_ref, &name) == errSecSuccess && name) {
-            for (CFStringRef allowed : allowed_names) {
-                if (CFStringCompare(name, allowed, kCFCompareCaseInsensitive) == kCFCompareEqualTo) {
-                    CFArrayAppendValue(filtered, keychain_ref);
-                    if (!has_system_keychain && CFStringCompare(allowed, CFSTR("System.keychain"), 0) == kCFCompareEqualTo)
-                        has_system_keychain = true;
-                    if (!has_root_keychain &&
-                        (CFStringCompare(allowed, CFSTR("SystemRootCertificates.keychain"), 0) == kCFCompareEqualTo ||
-                            CFStringCompare(allowed, CFSTR("SystemRootCertificates.keychain-db"), 0) == kCFCompareEqualTo)) {
-                        has_root_keychain = true;
-                    }
-                    break;
-                }
-            }
-        }
-
-        if (name)
-            CFRelease(name);
-    }
-
-    auto append_explicit_keychain = [&](const char* path, bool& flag) {
-        if (flag)
-            return;
-        SecKeychainRef keychain = nullptr;
-        if (SecKeychainOpen(path, &keychain) == errSecSuccess && keychain) {
-            CFArrayAppendValue(filtered, keychain);
-            CFRelease(keychain);
-            flag = true;
-        }
-    };
-
-    append_explicit_keychain("/System/Library/Keychains/System.keychain", has_system_keychain);
-    append_explicit_keychain("/System/Library/Keychains/SystemRootCertificates.keychain", has_root_keychain);
-    append_explicit_keychain("/System/Library/Keychains/SystemRootCertificates.keychain-db", has_root_keychain);
-
-    if (CFArrayGetCount(filtered) > 0)
-        SecKeychainSetSearchList(filtered);
-
-    CFRelease(filtered);
-    CFRelease(original_list);
-}
-
-} // namespace
-#endif
-
 class WebBrowserApp : public CefApp {
 public:
     void OnBeforeCommandLineProcessing(const CefString& process_type,
@@ -209,7 +127,6 @@ int main(int argc, char* argv[])
     // CEF requests (for example "GeneralNames is a sequence of 0 elements").
     // Certificate errors are handled by BrowserClient::OnCertificateError so we
     // can keep loading pages until Apple resolves the trust store regression.
-    RestrictKeychainSearchListToSystemStores();
 #endif
 
     namespace fs = std::filesystem;
