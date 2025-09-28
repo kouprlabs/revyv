@@ -16,9 +16,12 @@ set(CEF_VERSION "140.1.14+geb1c06e+chromium-140.0.7339.185")
 
 if ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "arm")
     set(CEF_PLATFORM "linuxarm")
-elseif ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "arm64")
+elseif ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "arm64" OR
+        "${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "aarch64")
     set(CEF_PLATFORM "linuxarm64")
-elseif (CMAKE_SIZEOF_VOID_P MATCHES 8)
+elseif ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "x86_64" OR
+        "${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "amd64" OR
+        CMAKE_SIZEOF_VOID_P MATCHES 8)
     set(CEF_PLATFORM "linux64")
 else ()
     message(FATAL_ERROR "Linux x86 32-bit builds are discontinued.")
