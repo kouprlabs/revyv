@@ -4,6 +4,8 @@
 
 using namespace revyv;
 
+extern "C" {
+
 void* revyv_context_create()
 {
     auto* connector = new Connector();
@@ -108,3 +110,5 @@ RevyvEvent revyv_event_wait(void* ctx)
 
     return result;
 }
+
+} // extern "C"
