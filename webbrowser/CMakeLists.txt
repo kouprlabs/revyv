@@ -302,6 +302,46 @@ target_include_directories(webbrowser PRIVATE
         "${REPO_ROOT}/librevyv/include"
         "${REPO_ROOT}/compositor/include")
 
+set(_webbrowser_cairo_link "cairo")
+if(APPLE)
+    set(_homebrew_prefix $ENV{HOMEBREW_PREFIX})
+    if(NOT _homebrew_prefix)
+        set(_homebrew_prefix "/opt/homebrew")
+        if(NOT EXISTS "${_homebrew_prefix}/bin/brew")
+            set(_homebrew_prefix "/usr/local")
+        endif()
+    endif()
+
+    set(_homebrew_search_prefixes
+            "${_homebrew_prefix}"
+            "${_homebrew_prefix}/opt/cairo"
+            "/usr/local"
+            "/usr/local/opt/cairo")
+
+    find_path(HOMEBREW_CAIRO_INCLUDE_DIR
+            NAMES cairo/cairo.h
+            PATHS ${_homebrew_search_prefixes}
+            PATH_SUFFIXES include
+            NO_DEFAULT_PATH)
+
+    if(NOT HOMEBREW_CAIRO_INCLUDE_DIR)
+        message(FATAL_ERROR "Could not locate cairo headers. Install them with 'brew install cairo'.")
+    endif()
+
+    find_library(HOMEBREW_CAIRO_LIBRARY
+            NAMES cairo
+            PATHS ${_homebrew_search_prefixes}
+            PATH_SUFFIXES lib
+            NO_DEFAULT_PATH)
+
+    if(NOT HOMEBREW_CAIRO_LIBRARY)
+        message(FATAL_ERROR "Could not locate libcairo. Install it with 'brew install cairo'.")
+    endif()
+
+    target_include_directories(webbrowser PRIVATE "${HOMEBREW_CAIRO_INCLUDE_DIR}")
+    set(_webbrowser_cairo_link "${HOMEBREW_CAIRO_LIBRARY}")
+endif()
+
 # Logical target used to link the libcef library
 if (OS_LINUX OR OS_WINDOWS)
     ADD_LOGICAL_TARGET("libcef_lib" "${CEF_LIB_DEBUG}" "${CEF_LIB_RELEASE}")
@@ -310,9 +350,9 @@ endif ()
 add_dependencies(webbrowser libcef_dll_wrapper)
 
 if (OS_MAC)
-    target_link_libraries(webbrowser PRIVATE libcef_dll_wrapper ${CEF_STANDARD_LIBS} revyv cairo)
+    target_link_libraries(webbrowser PRIVATE libcef_dll_wrapper ${CEF_STANDARD_LIBS} revyv "${_webbrowser_cairo_link}")
 else ()
-    target_link_libraries(webbrowser PRIVATE libcef_lib libcef_dll_wrapper ${CEF_STANDARD_LIBS} revyv cairo)
+    target_link_libraries(webbrowser PRIVATE libcef_lib libcef_dll_wrapper ${CEF_STANDARD_LIBS} revyv "${_webbrowser_cairo_link}")
 endif ()
 
 if (OS_MAC)
