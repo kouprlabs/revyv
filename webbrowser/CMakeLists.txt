@@ -252,6 +252,8 @@ macro(SET_EXAMPLE_EXECUTABLE_TARGET_PROPERTIES target)
 endmacro()
 
 set(WEBBROWSER_SRCS
+        src/browser_app.cpp
+        src/browser_app.h
         src/main.cpp
         src/render_handler.cpp
         src/render_handler.h

@@ -1,3 +1,4 @@
+#include "browser_app.h"
 #include "include/cef_app.h"
 #include "include/wrapper/cef_library_loader.h"
 
@@ -10,5 +11,6 @@ int main(int argc, char* argv[])
         return -1;
     }
 #endif
-    return CefExecuteProcess(main_args, nullptr, nullptr);
+    CefRefPtr<CefApp> app = new BrowserApp();
+    return CefExecuteProcess(main_args, app.get(), nullptr);
 }
