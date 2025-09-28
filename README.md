@@ -38,7 +38,7 @@ Install the required toolchain and libraries with [Homebrew](https://brew.sh/):
 brew install cmake ninja sdl2 zeromq cppzmq lzo cairo
 ```
 
-Homebrew installs the C++ bindings header at `$(brew --prefix)/include/zmq.hpp` (for Apple Silicon this is typically `/opt/homebrew/include/zmq.hpp`).
+The C++ ZeroMQ header is available at `$(brew --prefix)/include/zmq.hpp`, and SDL's headers live under `$(brew --prefix sdl2)/include/SDL2/` (both default to `/opt/homebrew/...` on Apple Silicon).
 
 Configure and build the project:
 
