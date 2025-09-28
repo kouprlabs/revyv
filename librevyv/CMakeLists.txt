@@ -1,6 +1,8 @@
 project(asl)
 
 include_directories("${PROJECT_SOURCE_DIR}/include")
+get_filename_component(LIBREVYV_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/.." ABSOLUTE)
+include_directories("${LIBREVYV_ROOT}/compositor/include")
 
 set(SOURCES
         src/capi.cpp

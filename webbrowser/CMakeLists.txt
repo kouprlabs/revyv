@@ -1,3 +1,5 @@
+cmake_minimum_required(VERSION 3.20)
+
 set(CMAKE_CONFIGURATION_TYPES Debug Release)
 
 project(webbrowser)
@@ -36,53 +38,40 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CEF_ROOT}/cmake")
 find_package(CEF REQUIRED)
 
 #
-# Python configuration
-#
-
-# Support specification of the Python executable path via the command-line
-if (DEFINED ENV{PYTHON_EXECUTABLE})
-    file(TO_CMAKE_PATH "$ENV{PYTHON_EXECUTABLE}" PYTHON_EXECUTABLE)
-endif ()
-
-if (NOT PYTHON_EXECUTABLE)
-    unset(PYTHON_EXECUTABLE)
-
-    # Find the python interpreter
-    find_package(PythonInterp)
-
-    if (NOT ${PYTHONINTERP_FOUND})
-        message(FATAL_ERROR "A Python installation is required. Set the "
-                "PYTHON_EXECUTABLE environment variable to explicitly "
-                "specify the Python executable path.")
-    endif ()
-endif ()
-
-message(STATUS "Using Python: ${PYTHON_EXECUTABLE}")
-
-#
 # Clang-format configuration
 #
 
-set(GS_PLATFORM "linux*")
 set(GS_HASHPATH "linux64/clang-format.sha1")
 set(GS_OUTPATH "linux64/clang-format")
+set(GS_SHA_FILE "${CMAKE_CURRENT_SOURCE_DIR}/tools/buildtools/${GS_HASHPATH}")
+set(GS_OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/tools/buildtools/${GS_OUTPATH}")
 
-message(STATUS "Downloading clang-format from Google Storage...")
-execute_process(
-        COMMAND "${PYTHON_EXECUTABLE}"
-        "tools/buildtools/download_from_google_storage.py"
-        "--no_resume"
-        "--platform=${GS_PLATFORM}"
-        "--no_auth"
-        "--bucket" "chromium-clang-format"
-        "-s" "tools/buildtools/${GS_HASHPATH}"
-        "-o" "tools/buildtools/${GS_OUTPATH}"
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-        RESULT_VARIABLE EXECUTE_RV
-)
-if (NOT EXECUTE_RV STREQUAL "0")
-    message(FATAL_ERROR "Execution failed with unexpected result: ${EXECUTE_RV}")
+if (NOT EXISTS "${GS_SHA_FILE}")
+    message(FATAL_ERROR "Missing clang-format hash file: ${GS_SHA_FILE}")
 endif ()
+
+if (NOT EXISTS "${GS_OUTPUT}")
+    file(READ "${GS_SHA_FILE}" GS_SHA1)
+    string(STRIP "${GS_SHA1}" GS_SHA1)
+    set(GS_URL "https://storage.googleapis.com/chromium-clang-format/${GS_SHA1}")
+
+    message(STATUS "Downloading clang-format from ${GS_URL}...")
+    file(DOWNLOAD
+            "${GS_URL}"
+            "${GS_OUTPUT}"
+            STATUS DOWNLOAD_STATUS
+            SHOW_PROGRESS)
+    list(GET DOWNLOAD_STATUS 0 DOWNLOAD_STATUS_CODE)
+    if (NOT DOWNLOAD_STATUS_CODE EQUAL 0)
+        list(GET DOWNLOAD_STATUS 1 DOWNLOAD_STATUS_MESSAGE)
+        message(FATAL_ERROR "Failed to download clang-format: ${DOWNLOAD_STATUS_MESSAGE}")
+    endif ()
+endif ()
+
+file(CHMOD "${GS_OUTPUT}" PERMISSIONS
+        OWNER_READ OWNER_WRITE OWNER_EXECUTE
+        GROUP_READ GROUP_EXECUTE
+        WORLD_READ WORLD_EXECUTE)
 
 #
 # Target configuration
@@ -90,9 +79,6 @@ endif ()
 
 # Include the libcef_dll_wrapper target (executes libcef_dll/CMakeLists.txt)
 add_subdirectory(${CEF_LIBCEF_DLL_WRAPPER_PATH} libcef_dll_wrapper)
-
-# Allow includes relative to the current source directory
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 # Set properties common to all example targets.
 macro(SET_EXAMPLE_PROPERTIES target)
@@ -133,6 +119,16 @@ APPEND_PLATFORM_SOURCES(${SOURCES})
 add_executable(webbrowser ${SOURCES})
 
 SET_EXAMPLE_EXECUTABLE_TARGET_PROPERTIES(webbrowser)
+
+get_filename_component(REPO_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/.." ABSOLUTE)
+if (NOT TARGET revyv)
+    add_subdirectory("${REPO_ROOT}/librevyv" librevyv)
+endif ()
+target_include_directories(webbrowser PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        "${REPO_ROOT}/thirdparty/argh"
+        "${REPO_ROOT}/librevyv/include"
+        "${REPO_ROOT}/compositor/include")
 
 # Logical target used to link the libcef library
 ADD_LOGICAL_TARGET("libcef_lib" "${CEF_LIB_DEBUG}" "${CEF_LIB_RELEASE}")
