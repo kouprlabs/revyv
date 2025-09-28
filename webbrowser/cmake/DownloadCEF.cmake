@@ -10,7 +10,7 @@
 
 function(DownloadCEF platform version download_dir)
   # Specify the binary distribution type and download directory.
-  set(CEF_DISTRIBUTION "cef_binary_${version}_${platform}")
+  set(CEF_DISTRIBUTION "cef_binary_${version}_${platform}_minimal")
   set(CEF_DOWNLOAD_DIR "${download_dir}")
 
   # The location where we expect the extracted binary distribution.

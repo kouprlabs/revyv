@@ -1,8 +1,8 @@
 # Webbrowser
 
 The `webbrowser` target integrates the Chromium Embedded Framework (CEF) into
-Revyv. The build automatically downloads the matching CEF binary distribution
-and links it against the project.
+Revyv. The build automatically downloads the matching minimal CEF binary
+distribution and links it against the project.
 
 ## CEF version
 
@@ -33,8 +33,8 @@ cmake -S webbrowser -B out/webbrowser
 cmake --build out/webbrowser
 ```
 
-The configure step downloads approximately 250 MB of prebuilt CEF binaries, so
-the initial run can take a few minutes depending on network speed.
+The configure step downloads the minimal prebuilt CEF binaries (roughly
+120 MB), so the initial run can take a few minutes depending on network speed.
 
 `cmake --build` will also compile the `librevyv` shared library and its
 `client-test` executable when the `webbrowser` project is configured on its own.
