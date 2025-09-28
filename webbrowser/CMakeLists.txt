@@ -130,6 +130,15 @@ get_filename_component(REPO_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/.." ABSOLUTE)
 if (NOT TARGET revyv)
     add_subdirectory("${REPO_ROOT}/librevyv" librevyv)
 endif ()
+
+# Ensure the webbrowser executable can locate librevyv at runtime without
+# requiring users to export LD_LIBRARY_PATH manually.  The generator expression
+# resolves to the directory containing the built shared library regardless of
+# whether librevyv was added by the top-level project or via the local
+# add_subdirectory above.
+set_property(TARGET webbrowser APPEND PROPERTY INSTALL_RPATH
+        "$<TARGET_FILE_DIR:revyv>")
+
 target_include_directories(webbrowser PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
         "${REPO_ROOT}/thirdparty/argh"

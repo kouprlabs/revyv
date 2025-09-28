@@ -33,8 +33,8 @@ sudo dnf install SDL2-devel cairo-devel zeromq-devel cppzmq-devel lzo-devel
 Configure and build the project:
 
 ```
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build --parallel
+cmake -S . -B build
+cmake --build build
 ```
 
 ## Run
@@ -42,22 +42,15 @@ cmake --build build --parallel
 Run `compositor`:
 
 ```shell
-./compositor
+./compositor --width=1440 --height=900
 ```
 
-Add `librevyv` to `LD_LIBRARY_PATH`:
+Any client app can now be started, in this case we run `webbrowser`.
 
 ```shell
-export LD_LIBRARY_PATH=/path/to/cmake/build/librevyv
-```
-
-Any client app can now be started, in this case we run `webbrowser`:
-
-```shell
-./webbrowser --frame="200,200,1000,600" --url="https://youtube.com"
-./webbrowser --frame="600,400,1000,600" --url="https://dw.com"
-./webbrowser --frame="400,50,1000,600" --url="https://www.waze.com/live-map"
-./webbrowser --frame="800,100,1000,600" --url="https://google.com"
+./webbrowser --frame="0,0,1440,900" --url="https://youtube.com"
+./webbrowser --frame="0,0,1440,900" --url="https://www.waze.com/live-map"
+./webbrowser --frame="0,0,1440,900" --url="https://google.com"
 ```
 
 ## Licensing
