@@ -33,8 +33,8 @@ sudo dnf install SDL2-devel cairo-devel zeromq-devel cppzmq-devel lzo-devel
 Configure and build the project:
 
 ```
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build --parallel
+cmake -S . -B build
+cmake --build build
 ```
 
 ## Run
@@ -42,17 +42,15 @@ cmake --build build --parallel
 Run `compositor`:
 
 ```shell
-./compositor
+./compositor --width=1440 --height=900
 ```
 
 Any client app can now be started, in this case we run `webbrowser`.
-The build configures `webbrowser` with an RPATH that locates `librevyv`,
-so no additional `LD_LIBRARY_PATH` setup is required:
 
 ```shell
-./webbrowser --frame="200,200,1000,600" --url="https://youtube.com"
-./webbrowser --frame="400,50,1000,600" --url="https://www.waze.com/live-map"
-./webbrowser --frame="800,100,1000,600" --url="https://google.com"
+./webbrowser --frame="0,0,1440,900" --url="https://youtube.com"
+./webbrowser --frame="0,0,1440,900" --url="https://www.waze.com/live-map"
+./webbrowser --frame="0,0,1440,900" --url="https://google.com"
 ```
 
 ## Licensing
