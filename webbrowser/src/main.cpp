@@ -55,6 +55,7 @@ int main(int argc, char* argv[])
     }
 
     CefSettings settings;
+    settings.no_sandbox = true;
     settings.windowless_rendering_enabled = true;
     if (!CefInitialize(args, settings, nullptr, nullptr)) {
         return -1;
