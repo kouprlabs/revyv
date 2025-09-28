@@ -16,36 +16,25 @@ A web browser based on Chromium Embedded Framework (CEF), uses `librevyv` to com
 
 ## Build
 
-#### Ubuntu
-
-_(Tested on Ubuntu 22.10 Kinetic Kudu)_
+#### Fedora
 
 Install CMake:
 
 ```shell
-sudo apt install cmake
+sudo dnf install cmake
 ```
 
 Install dependencies:
 
 ```
-sudo apt install libsdl2-dev libcairo-dev libzmq3-dev cppzmq-dev liblzo2-dev
+sudo dnf install SDL2-devel cairo-devel zeromq-devel cppzmq-devel lzo-devel
 ```
 
-#### openSUSE
-
-_(Tested on openSUSE Leap 15.4)_
-
-Install CMake:
-
-```shell
-sudo zypper install cmake
-```
-
-Install dependencies:
+Configure and build the project:
 
 ```
-sudo zypper install SDL2-devel cairo-devel zeromq-devel cppzmq-devel lzo-devel
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --parallel
 ```
 
 ## Run
