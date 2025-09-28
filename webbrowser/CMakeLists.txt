@@ -520,7 +520,7 @@ if (APPLE)
 endif ()
 
 add_dependencies(webbrowser libcef_dll_wrapper)
-target_link_libraries(webbrowser libcef_lib libcef_dll_wrapper ${CEF_STANDARD_LIBS} revyv ${_CAIRO_TARGET})
+target_link_libraries(webbrowser PRIVATE libcef_lib libcef_dll_wrapper ${CEF_STANDARD_LIBS} revyv ${_CAIRO_TARGET})
 
 if (APPLE)
     target_link_libraries(webbrowser PRIVATE "-framework Security")
