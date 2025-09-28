@@ -80,6 +80,72 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CEF_ROOT}/cmake")
 # Load the CEF configuration (executes FindCEF.cmake)
 find_package(CEF REQUIRED)
 
+if (OS_MAC)
+    set(_cef_default_target "${CEF_TARGET_SDK}")
+
+    set(_requested_deployment "")
+    if (DEFINED CMAKE_OSX_DEPLOYMENT_TARGET AND
+            NOT "${CMAKE_OSX_DEPLOYMENT_TARGET}" STREQUAL "")
+        set(_requested_deployment "${CMAKE_OSX_DEPLOYMENT_TARGET}")
+    endif ()
+
+    if (_requested_deployment STREQUAL "")
+        execute_process(
+                COMMAND xcrun --sdk macosx --show-sdk-version
+                OUTPUT_VARIABLE _xcrun_sdk_version
+                OUTPUT_STRIP_TRAILING_WHITESPACE
+                ERROR_VARIABLE _xcrun_sdk_error
+                RESULT_VARIABLE _xcrun_sdk_result)
+        if (_xcrun_sdk_result EQUAL 0 AND NOT "${_xcrun_sdk_version}" STREQUAL "")
+            set(_requested_deployment "${_xcrun_sdk_version}")
+        endif ()
+    endif ()
+
+    set(_effective_deployment "${_cef_default_target}")
+    if (NOT _requested_deployment STREQUAL "")
+        if (_requested_deployment VERSION_LESS "${_cef_default_target}")
+            set(_effective_deployment "${_cef_default_target}")
+        else ()
+            set(_effective_deployment "${_requested_deployment}")
+        endif ()
+    endif ()
+
+    if (NOT "${_effective_deployment}" STREQUAL "${_cef_default_target}")
+        message(STATUS "Updating macOS deployment target to ${_effective_deployment} "
+                "to match the active SDK")
+        set(CEF_TARGET_SDK "${_effective_deployment}")
+
+        set(_updated_flags "")
+        foreach (_flag IN LISTS CEF_COMPILER_FLAGS)
+            if (_flag MATCHES "^-mmacosx-version-min=")
+                list(APPEND _updated_flags "-mmacosx-version-min=${_effective_deployment}")
+            else ()
+                list(APPEND _updated_flags "${_flag}")
+            endif ()
+        endforeach ()
+        if (_updated_flags)
+            set(CEF_COMPILER_FLAGS ${_updated_flags})
+        endif ()
+
+        set(CMAKE_OSX_DEPLOYMENT_TARGET "${_effective_deployment}" CACHE STRING
+                "Minimum macOS version to target" FORCE)
+        set(CMAKE_OSX_DEPLOYMENT_TARGET "${_effective_deployment}")
+    elseif (NOT "${CMAKE_OSX_DEPLOYMENT_TARGET}" STREQUAL "${_cef_default_target}")
+        set(CMAKE_OSX_DEPLOYMENT_TARGET "${_cef_default_target}" CACHE STRING
+                "Minimum macOS version to target" FORCE)
+        set(CMAKE_OSX_DEPLOYMENT_TARGET "${_cef_default_target}")
+    endif ()
+
+    list(FIND CEF_COMPILER_FLAGS "-Wno-overriding-option" _has_no_override)
+    if (_has_no_override EQUAL -1)
+        list(APPEND CEF_COMPILER_FLAGS "-Wno-overriding-option")
+    endif ()
+    list(FIND CEF_COMPILER_FLAGS "-Wno-error=overriding-option" _has_no_override_error)
+    if (_has_no_override_error EQUAL -1)
+        list(APPEND CEF_COMPILER_FLAGS "-Wno-error=overriding-option")
+    endif ()
+endif ()
+
 # Set the configuration-specific binary output directory similar to CEF examples.
 if (CMAKE_GENERATOR MATCHES "Ninja" OR CMAKE_GENERATOR MATCHES "Unix Makefiles")
     if (CMAKE_BUILD_TYPE)
