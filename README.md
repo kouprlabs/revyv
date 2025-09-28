@@ -35,8 +35,10 @@ sudo dnf install SDL2-devel cairo-devel zeromq-devel cppzmq-devel lzo-devel
 Install the required toolchain and libraries with [Homebrew](https://brew.sh/):
 
 ```shell
-brew install cmake ninja sdl2 zeromq lzo cairo
+brew install cmake ninja sdl2 zeromq cppzmq lzo cairo
 ```
+
+Homebrew installs the C++ bindings header at `$(brew --prefix)/include/zmq.hpp` (for Apple Silicon this is typically `/opt/homebrew/include/zmq.hpp`).
 
 Configure and build the project:
 
