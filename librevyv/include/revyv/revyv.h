@@ -5,6 +5,7 @@
 
 #include <cstdint>
 #include <cstdio>
+#include <cstddef>
 #include <revyv/keycodes.h>
 
 typedef enum : uint8_t {

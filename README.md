@@ -30,6 +30,14 @@ Install dependencies:
 sudo dnf install SDL2-devel cairo-devel zeromq-devel cppzmq-devel lzo-devel
 ```
 
+#### macOS
+
+Install the required toolchain and libraries with [Homebrew](https://brew.sh/):
+
+```shell
+brew install cmake ninja sdl2 zeromq cppzmq lzo cairo
+```
+
 Configure and build the project:
 
 ```
