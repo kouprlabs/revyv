@@ -1,19 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
-
-if(APPLE)
-    if(NOT DEFINED CMAKE_OSX_DEPLOYMENT_TARGET OR CMAKE_OSX_DEPLOYMENT_TARGET STREQUAL "")
-        if(DEFINED CMAKE_SYSTEM_VERSION AND NOT CMAKE_SYSTEM_VERSION STREQUAL "")
-            set(_revyv_default_macos_target "${CMAKE_SYSTEM_VERSION}")
-        else()
-            set(_revyv_default_macos_target "12.0")
-        endif()
-        set(CMAKE_OSX_DEPLOYMENT_TARGET "${_revyv_default_macos_target}" CACHE STRING "Minimum supported macOS version")
-    else()
-        set(CMAKE_OSX_DEPLOYMENT_TARGET "${CMAKE_OSX_DEPLOYMENT_TARGET}" CACHE STRING "Minimum supported macOS version")
-    endif()
-    unset(_revyv_default_macos_target)
-endif()
-
+cmake_minimum_required(VERSION 3.2.2)
 project(revyv)
 
 include_directories("${PROJECT_SOURCE_DIR}/librevyv/include")

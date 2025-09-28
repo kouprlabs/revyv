@@ -57,14 +57,12 @@ brew update
 brew install cmake sdl2 cairo zeromq cppzmq lzo
 ```
 
-Generate an Xcode project (replace `Release` with `Debug` if desired when building):
+Generate the project files and build the targets (replace `Release` with `Debug` if desired):
 
 ```shell
-cmake -S . -B build -G Xcode
-cmake --build build --config Release --parallel
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --parallel
 ```
-
-Open the generated `build/revyv.xcodeproj` in Xcode and select the desired scheme to build and run the targets.
 
 The resulting binaries are placed in the `build` directory, e.g. `build/compositor` and `build/webbrowser`.
 

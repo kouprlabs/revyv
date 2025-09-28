@@ -1,161 +1,72 @@
 #include "event_thread.h"
 #include "chromium_keycodes.h"
 #include "include/cef_app.h"
-#include "include/cef_browser.h"
 #include "include/cef_render_handler.h"
-#include "include/cef_task.h"
-#include "include/base/cef_ref_counted.h"
-#include "include/wrapper/cef_closure_task.h"
-#include <functional>
-#include <string>
-#include <utility>
 #include <revyv/revyv.h>
 
-void EventThread::event_thread(CefRefPtr<CefBrowser> browser, void* aslCtx)
+void EventThread::event_thread(CefBrowser* browser, void* aslCtx)
 {
-    if (!browser)
-        return;
-
     RevyvEvent event;
     bool mouse_down = false;
-
-    class BrowserHostTask : public CefTask {
-    public:
-        BrowserHostTask(CefRefPtr<CefBrowser> browser, std::function<void(CefRefPtr<CefBrowserHost>)> task)
-            : browser_(std::move(browser)), task_(std::move(task))
-        {
-        }
-
-        void Execute() override
-        {
-            CefRefPtr<CefBrowser> browser = browser_;
-            if (!browser)
-                return;
-            CefRefPtr<CefBrowserHost> host = browser->GetHost();
-            if (host && task_)
-                task_(host);
-        }
-
-    private:
-        CefRefPtr<CefBrowser> browser_;
-        std::function<void(CefRefPtr<CefBrowserHost>)> task_;
-
-        IMPLEMENT_REFCOUNTING(BrowserHostTask);
-    };
-
-    auto post_to_ui = [](CefRefPtr<CefBrowser> target, std::function<void(CefRefPtr<CefBrowserHost>)> task) {
-        if (!target)
-            return;
-        CefPostTask(TID_UI, new BrowserHostTask(target, std::move(task)));
-    };
-
     while (true) {
         event = revyv_event_wait(aslCtx);
-
-        if (event.type == RevyvEventTypeQuit) {
-            post_to_ui(browser, [](CefRefPtr<CefBrowserHost> host) { host->CloseBrowser(false); });
-            break;
-        }
-
-        switch (event.type) {
-        case RevyvEventTypeMouseButton: {
-            CefBrowserHost::MouseButtonType button = MBT_LEFT;
-            switch (event.mouse_event.button) {
-            case RevyvMouseButtonTypeRight:
-                button = MBT_RIGHT;
-                break;
-            case RevyvMouseButtonTypeMiddle:
-                button = MBT_MIDDLE;
-                break;
-            case RevyvMouseButtonTypeLeft:
-            default:
-                button = MBT_LEFT;
-                break;
-            }
-
+        if (event.type == RevyvEventTypeMouseButton && event.mouse_event.button == RevyvMouseButtonTypeLeft
+            && event.mouse_event.button_state == RevyvMouseButtonStatePressed) {
+            mouse_down = true;
             CefMouseEvent cef_mouse_event;
-            cef_mouse_event.x = static_cast<int>(event.mouse_event.x);
-            cef_mouse_event.y = static_cast<int>(event.mouse_event.y);
-
-            const int clicks = event.mouse_event.clicks <= 3 ? event.mouse_event.clicks : 3;
-            const bool mouse_up = event.mouse_event.button_state == RevyvMouseButtonStateReleased;
-            if (event.mouse_event.button == RevyvMouseButtonTypeLeft)
-                mouse_down = !mouse_up;
-
-            post_to_ui(browser, [cef_mouse_event, button, mouse_up, clicks](CefRefPtr<CefBrowserHost> host) {
-                host->SendMouseClickEvent(cef_mouse_event, button, mouse_up, clicks);
-            });
-            break;
-        }
-        case RevyvEventTypeMouseMove: {
+            cef_mouse_event.x = (int)event.mouse_event.x;
+            cef_mouse_event.y = (int)event.mouse_event.y;
+            browser->GetHost()->SendMouseClickEvent(cef_mouse_event, MBT_LEFT, false, event.mouse_event.clicks <= 3 ? event.mouse_event.clicks : 3);
+        } else if (event.type == RevyvEventTypeMouseButton && event.mouse_event.button == RevyvMouseButtonTypeLeft
+            && event.mouse_event.button_state == RevyvMouseButtonStateReleased) {
+            mouse_down = false;
             CefMouseEvent cef_mouse_event;
-            if (mouse_down)
+            cef_mouse_event.x = (int)event.mouse_event.x;
+            cef_mouse_event.y = (int)event.mouse_event.y;
+            browser->GetHost()->SendMouseClickEvent(cef_mouse_event, MBT_LEFT, true, event.mouse_event.clicks <= 3 ? event.mouse_event.clicks : 3);
+        } else if (event.type == RevyvEventTypeMouseMove) {
+            CefMouseEvent cef_mouse_event;
+            if (mouse_down) {
                 cef_mouse_event.modifiers = EVENTFLAG_LEFT_MOUSE_BUTTON;
-            cef_mouse_event.x = static_cast<int>(event.mouse_event.x);
-            cef_mouse_event.y = static_cast<int>(event.mouse_event.y);
-
-            post_to_ui(browser, [cef_mouse_event](CefRefPtr<CefBrowserHost> host) {
-                host->SendMouseMoveEvent(cef_mouse_event, false);
-            });
-            break;
-        }
-        case RevyvEventTypeMouseScroll: {
+            }
+            cef_mouse_event.x = (int)event.mouse_event.x;
+            cef_mouse_event.y = (int)event.mouse_event.y;
+            browser->GetHost()->SendMouseMoveEvent(cef_mouse_event, false);
+        } else if (event.type == RevyvEventTypeMouseScroll) {
             CefMouseEvent cef_mouse_event;
-            cef_mouse_event.x = static_cast<int>(event.mouse_event.x);
-            cef_mouse_event.y = static_cast<int>(event.mouse_event.y);
-            const int velocity = 20;
-            const int delta_x = event.mouse_event.scroll_x * velocity;
-            const int delta_y = event.mouse_event.scroll_y * velocity;
-
-            post_to_ui(browser, [cef_mouse_event, delta_x, delta_y](CefRefPtr<CefBrowserHost> host) {
-                host->SendMouseWheelEvent(cef_mouse_event, delta_x, delta_y);
-            });
-            break;
-        }
-        case RevyvEventTypeText: {
-            if (event.text_event.text && event.text_event.text_size > 0) {
-                std::string text(event.text_event.text, event.text_event.text_size);
-                post_to_ui(browser, [text](CefRefPtr<CefBrowserHost> host) {
-                    for (unsigned char ch : text) {
-                        CefKeyEvent cefEvent;
-                        cefEvent.type = KEYEVENT_CHAR;
-                        cefEvent.character = ch;
-                        host->SendKeyEvent(cefEvent);
-                    }
-                });
+            cef_mouse_event.x = (int)event.mouse_event.x;
+            cef_mouse_event.y = (int)event.mouse_event.y;
+            int velocity = 20;
+            browser->GetHost()->SendMouseWheelEvent(cef_mouse_event, event.mouse_event.scroll_x * velocity, event.mouse_event.scroll_y * velocity);
+        } else if (event.type == RevyvEventTypeText) {
+            for (size_t i = 0; i < event.text_event.text_size; i++) {
+                CefKeyEvent cefEvent;
+                cefEvent.type = KEYEVENT_CHAR;
+                cefEvent.character = (unsigned char)event.text_event.text[0];
+                browser->GetHost()->SendKeyEvent(cefEvent);
             }
-            if (event.text_event.text) {
-                delete[] event.text_event.text;
-                event.text_event.text = nullptr;
-            }
-            break;
-        }
-        case RevyvEventTypeKey: {
+        } else if (event.type == RevyvEventTypeKey) {
             CefKeyEvent cef_key_event;
             cef_key_event.is_system_key = false;
             cef_key_event.modifiers = get_chromium_key_modifiers(event.key_event.keymod);
-            cef_key_event.type = (event.key_event.state == RevyvKeyStatePressed) ? KEYEVENT_KEYDOWN : KEYEVENT_KEYUP;
-
-            const int windows_key_code = get_chromium_keyboard_code(event.key_event.scancode);
-            if (windows_key_code != VKEY_UNKNOWN) {
-                cef_key_event.windows_key_code = windows_key_code;
-                post_to_ui(browser, [cef_key_event](CefRefPtr<CefBrowserHost> host) {
-                    host->SendKeyEvent(cef_key_event);
-                });
+            if (event.key_event.state == RevyvKeyStatePressed) {
+                cef_key_event.type = KEYEVENT_KEYDOWN;
+            } else if (event.key_event.state == RevyvKeyStateReleased) {
+                cef_key_event.type = KEYEVENT_KEYUP;
             }
-
+            auto code = get_chromium_keyboard_code(event.key_event.scancode);
+            if (code != VKEY_UNKNOWN) {
+                cef_key_event.windows_key_code = code;
+                browser->GetHost()->SendKeyEvent(cef_key_event);
+            }
+            /* Apparently, just sending a VKEY_RETURN is not enough, and not working
+             * properly in some cases. That's why we send here an additional KEYEVENT_CHAR. */
             if (event.key_event.state == RevyvKeyStatePressed && event.key_event.scancode == REVYV_SCANCODE_RETURN) {
                 CefKeyEvent cef_char_event;
                 cef_char_event.type = KEYEVENT_CHAR;
                 cef_char_event.character = '\r';
-                post_to_ui(browser, [cef_char_event](CefRefPtr<CefBrowserHost> host) {
-                    host->SendKeyEvent(cef_char_event);
-                });
+                browser->GetHost()->SendKeyEvent(cef_char_event);
             }
-            break;
-        }
-        default:
-            break;
         }
     }
 }

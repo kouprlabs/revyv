@@ -6,7 +6,7 @@
 
 class EventThread {
 public:
-    static void event_thread(CefRefPtr<CefBrowser> browser, void* aslCtx);
+    static void event_thread(CefBrowser* browser, void* aslCtx);
 
 private:
     static int get_chromium_keyboard_code(int32_t scancode);

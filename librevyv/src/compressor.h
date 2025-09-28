@@ -1,7 +1,6 @@
 #ifndef REVYV_COMPRESSOR_H
 #define REVYV_COMPRESSOR_H
 
-#include <cstddef>
 #include <lzo/lzo1x.h>
 #include <sstream>
 #include <unistd.h>
@@ -16,7 +15,7 @@ public:
 
 class Compressor {
 public:
-    Compressor(unsigned char* data, size_t size)
+    Compressor(unsigned char* data, uint64_t size)
     {
         _data = std::shared_ptr<unsigned char[]>(new unsigned char[size]);
         _wrkmem = malloc(LZO1X_1_MEM_COMPRESS);

@@ -105,10 +105,9 @@ void Listener::window_update_pixels(const ListenerPayload& p)
     std::shared_ptr<unsigned char[]> data;
     if (payload.is_compressed()) {
         data = std::shared_ptr<unsigned char[]>(new unsigned char[payload.get_data_size()]);
-        auto new_size = static_cast<lzo_uint>(payload.get_data_size());
-        auto decompress_result =
-            lzo1x_decompress(buffer.get(), static_cast<lzo_uint>(payload.get_compressed_size()), data.get(), &new_size, nullptr);
-        if (decompress_result != LZO_E_OK || new_size != static_cast<lzo_uint>(payload.get_data_size())) {
+        auto new_size = payload.get_data_size();
+        auto decompress_result = lzo1x_decompress(buffer.get(), payload.get_compressed_size(), data.get(), &new_size, nullptr);
+        if (decompress_result != LZO_E_OK || new_size != payload.get_data_size()) {
             return;
         }
     } else {
