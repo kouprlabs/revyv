@@ -88,7 +88,7 @@ EXPORT uint32_t revyv_window_create(void* context, unsigned char* data, size_t d
 
 EXPORT void revyv_window_update(void* context, uint32_t window_id, unsigned char* data, size_t data_size, double x, double y, double width, double height);
 
-EXPORT void revyv_window_resize(void* context, uint32_t window_id, void* data, uint64_t data_size, double width, double height);
+EXPORT void revyv_window_resize(void* context, uint32_t window_id, unsigned char* data, size_t data_size, double width, double height);
 
 EXPORT void revyv_window_change_visibility(void* context, uint32_t window_id, bool visible);
 
