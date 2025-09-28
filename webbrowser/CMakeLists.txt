@@ -54,6 +54,22 @@ function(_cef_strip_x86_flags_from_list out_var)
     set(${out_var} "${_filtered}" PARENT_SCOPE)
 endfunction()
 
+function(_cef_filter_target_flags target)
+    if (NOT TARGET ${target})
+        return()
+    endif ()
+
+    foreach(_prop COMPILE_OPTIONS INTERFACE_COMPILE_OPTIONS LINK_OPTIONS INTERFACE_LINK_OPTIONS)
+        get_target_property(_flags ${target} ${_prop})
+        if (NOT _flags OR _flags STREQUAL "_flags-NOTFOUND")
+            continue()
+        endif ()
+
+        _cef_strip_x86_flags_from_list(_filtered ${_flags})
+        set_target_properties(${target} PROPERTIES ${_prop} "${_filtered}")
+    endforeach ()
+endfunction()
+
 if (NOT CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|amd64)$")
     set(_cef_flag_vars
             CEF_C_COMPILER_FLAGS
@@ -117,22 +133,6 @@ add_subdirectory(${CEF_LIBCEF_DLL_WRAPPER_PATH} libcef_dll_wrapper)
 # defined, walk their compile and link options to remove the incompatible
 # switches.
 if (NOT CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|amd64)$")
-    function(_cef_filter_target_flags target)
-        if (NOT TARGET ${target})
-            return()
-        endif ()
-
-        foreach(_prop COMPILE_OPTIONS INTERFACE_COMPILE_OPTIONS LINK_OPTIONS INTERFACE_LINK_OPTIONS)
-            get_target_property(_flags ${target} ${_prop})
-            if (NOT _flags OR _flags STREQUAL "_flags-NOTFOUND")
-                continue()
-            endif ()
-
-            _cef_strip_x86_flags_from_list(_filtered ${_flags})
-            set_target_properties(${target} PROPERTIES ${_prop} "${_filtered}")
-        endforeach ()
-    endfunction()
-
     _cef_filter_target_flags(libcef_dll_wrapper)
     _cef_filter_target_flags(cef_sandbox)
 endif ()
@@ -176,6 +176,11 @@ APPEND_PLATFORM_SOURCES(${SOURCES})
 add_executable(webbrowser ${SOURCES})
 
 SET_EXAMPLE_EXECUTABLE_TARGET_PROPERTIES(webbrowser)
+
+if (NOT CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|amd64)$")
+    _cef_filter_target_flags(webbrowser)
+    _cef_filter_target_flags(libcef_lib)
+endif ()
 
 get_filename_component(REPO_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/.." ABSOLUTE)
 if (NOT TARGET revyv)
