@@ -1,7 +1,9 @@
+#include "browser_app.h"
 #include "browser_client.h"
 #include "event_thread.h"
 #include "include/cef_app.h"
 #include "include/cef_render_handler.h"
+#include "include/wrapper/cef_library_loader.h"
 #include "render_handler.h"
 #include <argh.h>
 #include <iostream>
@@ -37,7 +39,16 @@ int main(int argc, char* argv[])
         height = values[3];
     }
 
-    int result = CefExecuteProcess(args, nullptr, nullptr);
+    CefRefPtr<CefApp> app = new BrowserApp();
+
+#if defined(__APPLE__)
+    CefScopedLibraryLoader library_loader;
+    if (!library_loader.LoadInMain()) {
+        return -1;
+    }
+#endif
+
+    int result = CefExecuteProcess(args, app.get(), nullptr);
     if (result >= 0) {
         // The child proccess terminated, we exit
         return result;
@@ -48,8 +59,9 @@ int main(int argc, char* argv[])
     }
 
     CefSettings settings;
+    settings.no_sandbox = true;
     settings.windowless_rendering_enabled = true;
-    if (!CefInitialize(args, settings, nullptr, nullptr)) {
+    if (!CefInitialize(args, settings, app.get(), nullptr)) {
         return -1;
     }
 

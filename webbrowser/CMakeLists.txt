@@ -252,6 +252,8 @@ macro(SET_EXAMPLE_EXECUTABLE_TARGET_PROPERTIES target)
 endmacro()
 
 set(WEBBROWSER_SRCS
+        src/browser_app.cpp
+        src/browser_app.h
         src/main.cpp
         src/render_handler.cpp
         src/render_handler.h
@@ -262,7 +264,9 @@ set(WEBBROWSER_SRCS
         src/chromium_keycodes.h)
 APPEND_PLATFORM_SOURCES(WEBBROWSER_SRCS)
 
-set(WEBBROWSER_HELPER_SRCS)
+set(WEBBROWSER_HELPER_SRCS
+        src/browser_app.cpp
+        src/browser_app.h)
 set(WEBBROWSER_HELPER_SRCS_MAC
         src/process_helper_mac.cpp)
 APPEND_PLATFORM_SOURCES(WEBBROWSER_HELPER_SRCS)

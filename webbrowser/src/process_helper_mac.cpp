@@ -1,7 +1,16 @@
+#include "browser_app.h"
 #include "include/cef_app.h"
+#include "include/wrapper/cef_library_loader.h"
 
 int main(int argc, char* argv[])
 {
     CefMainArgs main_args(argc, argv);
-    return CefExecuteProcess(main_args, nullptr, nullptr);
+#if defined(__APPLE__)
+    CefScopedLibraryLoader library_loader;
+    if (!library_loader.LoadInHelper()) {
+        return -1;
+    }
+#endif
+    CefRefPtr<CefApp> app = new BrowserApp();
+    return CefExecuteProcess(main_args, app.get(), nullptr);
 }
